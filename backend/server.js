@@ -1,0 +1,81 @@
+require('dotenv').config();
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+
+const authRoutes = require('./routes/authRoutes');
+const submissionRoutes = require('./routes/submissionRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
+const app = express();
+
+// ============================================================
+// SEGURIDAD (OWASP)
+// ============================================================
+
+// Cabeceras de seguridad HTTP (helmet):
+//  - X-Content-Type-Options
+//  - X-Frame-Options
+//  - Strict-Transport-Security
+//  - Content-Security-Policy
+app.use(helmet());
+
+// Control de CORS: solo orígenes permitidos
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Limitación de peticiones (Rate Limiting) - Mitiga fuerza bruta
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas peticiones. Intente más tarde.' }
+});
+app.use('/api/auth', limiter);
+
+// Body parser con límite de tamaño (previene DoS por payloads pesados)
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// ============================================================
+// RUTAS
+// ============================================================
+app.use('/api/auth', authRoutes);
+app.use('/api/submissions', submissionRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Ruta de salud del servidor
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Manejo centralizado de errores (evita exponer stack traces)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    error: 'Error interno del servidor',
+    message: process.env.NODE_ENV === 'production' ? undefined : err.message
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Recurso no encontrado' });
+});
+
+const PORT = process.env.PORT || 4000;
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Servidor OverDrive corriendo en http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
