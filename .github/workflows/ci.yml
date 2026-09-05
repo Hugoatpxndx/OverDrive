@@ -118,11 +118,23 @@ jobs:
 
   # ============================================================
   # Job 4: Análisis de Calidad (SonarQube)
+  # OPCIONAL: solo se ejecuta si se configuran los secrets
+  # SONAR_TOKEN y SONAR_HOST_URL en el repositorio de GitHub.
+  # Si no están configurados, el job se omite (pipeline en verde).
+  # Cómo activarlo:
+  #   1. Crea una cuenta en https://sonarcloud.io (o usa tu servidor)
+  #   2. Genera un token en su pestaña "My Account > Security"
+  #   3. En GitHub: Settings > Secrets and variables > Actions, añade:
+  #        SONAR_TOKEN=<token>
+  #        SONAR_HOST_URL=https://sonarcloud.io
+  #   4. Verifica que sonar.projectKey (sonar-project.properties)
+  #      coincida con el proyecto creado en SonarQube.
   # ============================================================
   sonarqube:
     name: Análisis de Calidad SonarQube
     runs-on: ubuntu-latest
     needs: [backend-tests]
+    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
 
     steps:
       - name: Checkout del código
