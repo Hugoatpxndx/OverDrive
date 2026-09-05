@@ -4,7 +4,8 @@ const { authenticate } = require('../middlewares/auth');
 const {
   submitSong,
   acceptSubmission,
-  listMySubmissions
+  listMySubmissions,
+  listCuratorSubmissions
 } = require('../controllers/submissionController');
 
 const router = express.Router();
@@ -46,6 +47,9 @@ router.post(
 
 // GET /api/submissions - Listar mis propuestas (Artista)
 router.get('/', listMySubmissions);
+
+// GET /api/submissions/curator - Listar propuestas recibidas (Curador)
+router.get('/curator', listCuratorSubmissions);
 
 // POST /api/submissions/:id/accept - Aceptar propuesta (Modo Curador)
 router.post(

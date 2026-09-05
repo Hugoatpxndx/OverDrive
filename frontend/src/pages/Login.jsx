@@ -14,7 +14,9 @@ const Login = () => {
     setError('');
     const result = await login({ identifier, password });
     if (result.success) {
-      navigate('/dashboard');
+      // Esperar un ciclo de render para que el estado `token` se propague
+      // antes de navegar (evita que ProtectedRoute redirija de vuelta a login).
+      setTimeout(() => navigate('/dashboard'), 0);
     } else {
       setError(result.message);
     }

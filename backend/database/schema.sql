@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role          ENUM('usuario','administrador') NOT NULL DEFAULT 'usuario',
   tokens        SMALLINT UNSIGNED NOT NULL DEFAULT 3,
+  -- Tokens de conexión OAuth con Spotify (Modo Curador)
+  spotify_access_token  VARCHAR(500) NULL,
+  spotify_refresh_token VARCHAR(500) NULL,
+  spotify_connected_at  TIMESTAMP NULL,
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   -- Restricción del tope de billetera (Wallet Cap): máx 10 tokens

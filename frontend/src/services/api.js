@@ -18,11 +18,16 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor: manejo global de errores 401 (token expirado)
+// Interceptor: manejo global de errores 401 (token expirado/sesion inválida)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+    const isRegisterRequest = error.config?.url?.includes('/auth/register');
+
+    // Solo redirigir a login si es por token expirado y NO es un intento de
+    // autenticación (esos no tienen token aún y su 401 debe mostrarse en el form).
+    if (error.response?.status === 401 && !isLoginRequest && !isRegisterRequest) {
       localStorage.removeItem('od_token');
       localStorage.removeItem('od_user');
       window.location.href = '/login';

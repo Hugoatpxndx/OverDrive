@@ -8,12 +8,15 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [modo, setModo] = useState('artista');
+  // Indica si ya se restauró la sesión desde localStorage (previene
+  // redirección falsa a /login durante el primer render).
+  const [initialized, setInitialized] = useState(false);
 
   // Inicializar sesión desde localStorage (solo el token, no datos sensibles)
   const initFromStorage = useCallback(() => {
     const storedToken = localStorage.getItem('od_token');
     const storedUser = localStorage.getItem('od_user');
-    
+
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
@@ -24,6 +27,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('od_user');
       }
     }
+    setInitialized(true);
   }, []);
 
   // Login: recibe el JWT y lo almacena
@@ -44,7 +48,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.error || 'Error al iniciar sesión'
+        message:
+          error.response?.data?.errors?.[0]?.msg ||
+          error.response?.data?.error ||
+          'Error al iniciar sesión'
       };
     } finally {
       setLoading(false);
@@ -68,7 +75,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.error || 'Error al registrarse'
+        message:
+          error.response?.data?.errors?.[0]?.msg ||
+          error.response?.data?.error ||
+          'Error al registrarse'
       };
     } finally {
       setLoading(false);
@@ -93,6 +103,7 @@ export const AuthProvider = ({ children }) => {
     token,
     loading,
     modo,
+    initialized,
     login,
     register,
     logout,

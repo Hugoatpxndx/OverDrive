@@ -20,6 +20,13 @@ const Register = () => {
       return;
     }
 
+    // Mismo criterio que el backend: mayúscula + minúscula + número
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+    if (password.length < 8 || !passwordRegex.test(password)) {
+      setError('Contraseña: mínimo 8 caracteres, con mayúscula, minúscula y número');
+      return;
+    }
+
     const result = await register({ username, email, password });
     if (result.success) {
       navigate('/dashboard');

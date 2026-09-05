@@ -239,3 +239,141 @@ body {
   cursor: pointer;
   font-weight: 600;
 }
+
+/* ============================================================
+   Dashboard - Spotify y Playlists
+   ============================================================ */
+.select-playlist,
+.crear-playlist select,
+.crear-playlist input,
+.crear-playlist select {
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  width: 100%;
+}
+
+select.select-playlist {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.spotify-connect {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.spotify-connect button {
+  padding: 0.8rem 1.2rem;
+  background: #1db954;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.spotify-connect button:hover:not(:disabled) {
+  background: #169c46;
+}
+
+.spotify-connect button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spotify-connect .btn-danger {
+  background: #e74c3c;
+}
+
+.spotify-connect .btn-danger:hover {
+  background: #c0392b;
+}
+
+.lista {
+  list-style: none;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.lista li {
+  background: white;
+  border: 1px solid #eee;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.95rem;
+}
+
+.lista a {
+  color: #553c9a;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.lista a:hover {
+  text-decoration: underline;
+}
+
+.badge-pendiente {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.badge-aprobada {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-rechazada {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.btn-accept {
+  margin-left: auto;
+  padding: 0.5rem 1rem;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-accept:hover {
+  background: #1e8e50;
+}
+
+.crear-playlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.crear-playlist button {
+  padding: 0.9rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bandeja-propuestas {
+  margin-top: 1.5rem;
+}

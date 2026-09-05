@@ -220,4 +220,26 @@ const listMySubmissions = async (req, res) => {
   }
 };
 
-module.exports = { submitSong, acceptSubmission, listMySubmissions };
+// Listar propuestas que recibe el Curador (para sus playlists)
+const listCuratorSubmissions = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const rows = await executeQuery(
+      `SELECT s.id, s.track_url, s.track_name, s.status, s.created_at,
+              p.name AS playlist_name, u.username AS artist
+       FROM submissions s
+       JOIN playlists p ON p.id = s.playlist_id
+       JOIN users u ON u.id = s.artist_id
+       WHERE p.user_id = ?
+       ORDER BY s.created_at DESC`,
+      [userId]
+    );
+
+    return res.json({ submissions: rows });
+  } catch (error) {
+    console.error('Error al listar propuestas del curador:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
+module.exports = { submitSong, acceptSubmission, listMySubmissions, listCuratorSubmissions };

@@ -7,7 +7,13 @@ import { useAuth } from './context/AuthContext.jsx';
 
 // Componente para proteger rutas (solo usuarios autenticados)
 const ProtectedRoute = ({ children }) => {
-  const { token } = useAuth();
+  const { token, initialized } = useAuth();
+  // Mientras no se haya restaurado la sesión desde localStorage (primer
+  // render o vuelta del OAuth de Spotify), no redirigir todavía: evita
+  // el "bounce" a /login cuando el token ya existe pero aún no se propaga.
+  if (!initialized) {
+    return null;
+  }
   if (!token) {
     return <Navigate to="/login" replace />;
   }

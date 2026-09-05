@@ -11,8 +11,13 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   namedPlaceholders: true,
-  // Todas las consultas se ejecutan como Prepared Statements
   dateStrings: true,
+  connectTimeout: 10000,
+  // Mantener vivas las conexiones (evita que MariaDB las cierre por idle
+  // y que el pool entregue conexiones muertas que cuelguen las consultas)
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  idleTimeout: 30000,
   // Evitar inyección SQL mediante SQL Mode estricto
   flags: ['-FOUND_ROWS']
 });

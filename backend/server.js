@@ -7,6 +7,8 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/authRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const playlistRoutes = require('./routes/playlistRoutes');
+const spotifyRoutes = require('./routes/spotifyRoutes');
 
 const app = express();
 
@@ -50,6 +52,8 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/playlists', playlistRoutes);
+app.use('/api/spotify', spotifyRoutes);
 
 // Ruta de salud del servidor
 app.get('/api/health', (req, res) => {
