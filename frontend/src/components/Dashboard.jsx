@@ -174,16 +174,57 @@ const Dashboard = () => {
     }
   };
 
+  const pendingIncoming = incoming.filter((s) => s.status === 'pendiente').length;
+
   return (
-    <div className="dashboard">
-      <header className="dashboard-header">
-        <h1>OverDrive Dashboard</h1>
-        <div className="user-info">
-          <span>Usuario: {user?.username}</span>
-          <span className={`badge badge-${rol}`}>Rol: {rol}</span>
-          <span className="badge">Tokens: {user?.tokens}</span>
+    <div className="app-shell">
+      <nav className="navbar">
+        <div className="brand-row">
+          <span className="logo-mark">OD</span>
+          <span className="brand-name">
+            Over<span>Drive</span>
+          </span>
         </div>
-      </header>
+        <div className="user-chip">
+          <div className="user-meta">
+            <span className="user-name">{user?.username}</span>
+            <span className={`user-role badge badge-${rol}`}>{rol}</span>
+          </div>
+          <span className="badge">Tokens: {user?.tokens}</span>
+          <button onClick={logout} className="btn-logout">
+            Cerrar sesión
+          </button>
+        </div>
+      </nav>
+
+      <main className="dashboard">
+        <div className="page-head">
+          <h1>Hola, {user?.username} 👋</h1>
+          <p>Gestiona tus playlists, envía canciones y administra tus tokens.</p>
+        </div>
+
+        <div className="stats-row">
+          <div className="stat-card">
+            <span className="stat-icon">🪙</span>
+            <span className="stat-value">{user?.tokens ?? 0}</span>
+            <span className="stat-label">Tokens</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-icon">🎧</span>
+            <span className="stat-value">{myPlaylists.length}</span>
+            <span className="stat-label">Mis playlists</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-icon">📥</span>
+            <span className="stat-value">{pendingIncoming}</span>
+            <span className="stat-label">Propuestas pendientes</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-icon">🎤</span>
+            <span className="stat-value">{mySubmissions.length}</span>
+            <span className="stat-label">Mis envíos</span>
+          </div>
+        </div>
 
       {spotifyStatus === 'connected' && (
         <div className="message">✅ Cuenta de Spotify conectada. ¡Ya puedes importar tus playlists!</div>
@@ -373,9 +414,11 @@ const Dashboard = () => {
         </section>
       )}
 
-      <button onClick={logout} className="btn-logout">
-        Cerrar sesión
-      </button>
+      </main>
+
+      <footer className="footer">
+        OverDrive · Plataforma de curaduría musical · {new Date().getFullYear()}
+      </footer>
     </div>
   );
 };

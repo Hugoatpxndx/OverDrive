@@ -37,50 +37,82 @@ const Register = () => {
 
   return (
     <div className="auth-page">
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <h2>Crear cuenta en OverDrive</h2>
-        {error && <p className="error-message">{error}</p>}
-        <input
-          type="text"
-          placeholder="Nombre de usuario (3-20 caracteres)"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          minLength={3}
-          maxLength={20}
-          pattern="[a-zA-Z0-9_]+"
-          title="Solo letras, números y guiones bajos"
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Contraseña (mín. 8 caracteres, mayúscula y número)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-        />
-        <input
-          type="password"
-          placeholder="Confirmar contraseña"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          minLength={8}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Creando cuenta...' : 'Registrarse'}
-        </button>
-        <p>
-          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
-        </p>
-      </form>
+      <div className="auth-card">
+        <aside className="auth-brand">
+          <span className="logo-mark logo-mark--lg">OD</span>
+          <h1>Crea tu cuenta y empieza a girar</h1>
+          <p>
+            Únete a la economía circular de la música: conecta tu Spotify,
+            gestiona tus playlists y colabora con artistas.
+          </p>
+          <ul>
+            <li>Registro gratuito en segundos</li>
+            <li>Contraseñas protegidas con bcrypt</li>
+            <li>Autenticación segura con JWT</li>
+          </ul>
+        </aside>
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <h2>Crear cuenta</h2>
+          <p className="auth-sub">Completa tus datos para comenzar</p>
+          {error && <p className="error-message">{error}</p>}
+          <label className="field">
+            Nombre de usuario
+            <input
+              type="text"
+              placeholder="3-20 caracteres (letras, números, _)"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              minLength={3}
+              maxLength={20}
+              pattern="[a-zA-Z0-9_]+"
+              title="Solo letras, números y guiones bajos"
+            />
+          </label>
+          <label className="field">
+            Email
+            <input
+              type="email"
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </label>
+          <label className="field">
+            Contraseña
+            <input
+              type="password"
+              placeholder="Mín. 8 caracteres, mayúscula y número"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+              minLength={8}
+            />
+          </label>
+          <label className="field">
+            Confirmar contraseña
+            <input
+              type="password"
+              placeholder="Repite la contraseña"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+              minLength={8}
+            />
+          </label>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Creando cuenta...' : 'Registrarse'}
+          </button>
+          <p className="auth-alt">
+            ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 };

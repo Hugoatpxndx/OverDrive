@@ -91,6 +91,34 @@ npm run dev
 
 Abre **http://localhost:5173** en tu navegador.
 
+### 5. Opción con Docker (todo en un comando)
+
+> Requiere Docker + Docker Compose. Se levanta un stack con **MaríaDB + Backend + Frontend** en contenedores. Usa una base de datos *limpia* (volumen propio): los datos previos de tu MaríaDB local no se usan.
+
+```bash
+# Desde la raíz del proyecto
+docker compose up -d --build
+
+# Ver logs en tiempo real
+docker compose logs -f
+
+# Detener los contenedores (conservando los datos de la BD)
+docker compose down
+
+# Detener y ELIMINAR la base de datos (arranque limpio)
+docker compose down -v
+```
+
+| Servicio   | URL                  |
+|------------|----------------------|
+| Frontend   | http://localhost:5173 |
+| Backend    | http://localhost:4000 (callback Spotify: `127.0.0.1:4000`) |
+| MaríaDB    | `127.0.0.1:3307` (inspección opcional) |
+
+> **Nota:** `MARIADB_PASSWORD` en `compose.yaml` debe coincidir con `DB_PASSWORD` de `backend/.env` (ambos `overdrive2010`). Si cambias uno, cambia el otro.
+>
+> **Importante:** detén antes los servicios locales (backend `:4000` y Vite `:5173`) para liberar los puertos, o usa `docker compose` cuando no estén corriendo.
+
 ### Credenciales del administrador
 
 | Campo | Valor |
@@ -154,6 +182,27 @@ sonar-scanner
 ```
 
 O automatízalo con el job `sonarqube` del CI.
+
+### Ejecutar SonarQube localmente (Docker)
+
+Se incluye un script que levanta SonarQube, corre las pruebas con cobertura y
+ejecuta el escáner. Al terminar, abre `http://localhost:9000` (admin / `Overdrive2026!`).
+
+```bash
+./scripts/analisis-calidad.sh
+```
+
+### Escaneo de seguridad (OWASP ZAP)
+
+Con el backend corriendo en `:4000`, genera un reporte de seguridad:
+
+```bash
+docker run --rm --network host -v "$PWD/docs:/zap/wrk:rw" \
+  ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+  -t http://localhost:4000/api/health -r zap-report.html
+```
+
+> Resultados de la última ejecución y guía de la presentación: ver `docs/`.
 
 ---
 

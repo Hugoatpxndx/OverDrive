@@ -23,6 +23,12 @@ const app = express();
 //  - Content-Security-Policy
 app.use(helmet());
 
+// Evita el almacenamiento en caché de respuestas de la API (datos sensibles).
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // Control de CORS: solo orígenes permitidos
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
 app.use(cors({

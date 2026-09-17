@@ -24,30 +24,55 @@ const Login = () => {
 
   return (
     <div className="auth-page">
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <h2>Iniciar sesión en OverDrive</h2>
-        {error && <p className="error-message">{error}</p>}
-        <input
-          type="text"
-          placeholder="Usuario o email"
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Cargando...' : 'Iniciar sesión'}
-        </button>
-        <p>
-          ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
-        </p>
-      </form>
+      <div className="auth-card">
+        <aside className="auth-brand">
+          <span className="logo-mark logo-mark--lg">OD</span>
+          <h1>Conecta tu música con quienes la escuchan</h1>
+          <p>
+            OverDrive es la plataforma donde artistas y curadores intercambian
+            visibilidad de forma justa mediante tokens.
+          </p>
+          <ul>
+            <li>Importa tus playlists reales de Spotify</li>
+            <li>Envía tu canción a curadores afines</li>
+            <li>Acepta propuestas y gana tokens</li>
+          </ul>
+        </aside>
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <h2>Bienvenido de vuelta</h2>
+          <p className="auth-sub">Inicia sesión para continuar en OverDrive</p>
+          {error && <p className="error-message">{error}</p>}
+          <label className="field">
+            Usuario o email
+            <input
+              type="text"
+              placeholder="tu@email.com"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </label>
+          <label className="field">
+            Contraseña
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Cargando...' : 'Iniciar sesión'}
+          </button>
+          <p className="auth-alt">
+            ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 };
