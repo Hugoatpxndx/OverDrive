@@ -229,3 +229,70 @@ jobs:
       - name: Detener el stack
         if: always()
         run: docker compose down -v
+
+  # ============================================================
+  # Job 6: Pruebas de seguridad (OWASP ZAP)
+  # Levanta la API con Docker Compose y ejecuta un escaneo
+  # baseline de ZAP. Publica el reporte como artifact.
+  # Usa -I para no fallar por advertencias (solo por fallos).
+  # ============================================================
+  zap-scan:
+    name: Seguridad OWASP ZAP
+    runs-on: ubuntu-latest
+    needs: [backend-tests]
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Crear archivo de entorno
+        run: |
+          mkdir -p zap-reports
+          cat > backend/.env <<EOF
+          PORT=4000
+          NODE_ENV=production
+          DB_HOST=db
+          DB_PORT=3306
+          DB_USER=overdrive_user
+          DB_PASSWORD=2010
+          DB_NAME=overdrive
+          JWT_SECRET=${{ secrets.JWT_SECRET || 'ci_zap_secret' }}
+          CORS_ORIGIN=http://localhost:5173
+          EOF
+
+      - name: Levantar la base de datos y el backend
+        run: docker compose up -d --build db backend
+
+      - name: Esperar a que el backend esté saludable
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4000/api/health >/dev/null; then
+              echo "Backend saludable :)"
+              exit 0
+            fi
+            echo "Esperando al backend ($i/30)..."
+            sleep 5
+          done
+          echo "::error::El backend no respondió a tiempo"
+          docker compose logs
+          exit 1
+
+      - name: Escaneo OWASP ZAP (baseline)
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/zap-reports:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+            -t http://localhost:4000/api/health \
+            -r zap-report.html -J zap-report.json -I
+
+      - name: Publicar reporte de ZAP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: zap-reports/
+
+      - name: Detener el stack
+        if: always()
+        run: docker compose down -v

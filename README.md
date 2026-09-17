@@ -174,13 +174,8 @@ El pipeline en `.github/workflows/ci.yml` ejecuta automáticamente en cada push/
 | `SPOTIFY_CLIENT_ID` | Client ID de Spotify (opcional, para el deploy) |
 | `SPOTIFY_CLIENT_SECRET` | Client Secret de Spotify (opcional, para el deploy) |
 
-### Documentación del proyecto
-
-| Documento | Contenido |
-|-----------|-----------|
-| `docs/informe-cierre.md` | Cierre del proyecto: planificado vs. ejecutado, lecciones y plan de mejora |
-| `docs/presentacion-final.md` | Guion de la presentación de 15 min |
-| `docs/zap-report.html` | Reporte del escaneo de seguridad OWASP ZAP |
+> La documentación de entrega (informe de cierre, presentación, métricas y
+> reportes) se mantiene **fuera del repositorio** como entregable local.
 
 ---
 
@@ -214,7 +209,8 @@ docker run --rm --network host -v "$PWD/docs:/zap/wrk:rw" \
   -t http://localhost:4000/api/health -r zap-report.html
 ```
 
-> Resultados de la última ejecución y guía de la presentación: ver `docs/`.
+> El pipeline también ejecuta ZAP automáticamente (job `zap-scan`) y publica el
+> reporte como artifact. Puedes descargarlo desde la ejecución de GitHub Actions.
 
 ---
 
