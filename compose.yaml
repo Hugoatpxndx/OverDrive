@@ -21,10 +21,10 @@ services:
     container_name: overdrive-db
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: overdrive2010
+      MARIADB_ROOT_PASSWORD: "2010"
       MARIADB_DATABASE: overdrive
       MARIADB_USER: overdrive_user
-      MARIADB_PASSWORD: overdrive2010
+      MARIADB_PASSWORD: "2010"
     ports:
       - "3307:3306"
     volumes:
