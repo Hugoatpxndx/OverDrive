@@ -147,3 +147,72 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # ============================================================
+  # Job 5: Despliegue en entorno de prueba (CD)
+  # Levanta el stack completo con Docker Compose en el runner y
+  # valida con un smoke test (health + login JWT real contra la BD).
+  # Se ejecuta solo en push a main (despliegue continuo).
+  # ============================================================
+  deploy:
+    name: Despliegue en entorno de prueba
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Crear archivo de entorno para el despliegue
+        run: |
+          cat > backend/.env <<EOF
+          PORT=4000
+          NODE_ENV=production
+          DB_HOST=db
+          DB_PORT=3306
+          DB_USER=overdrive_user
+          DB_PASSWORD=2010
+          DB_NAME=overdrive
+          JWT_SECRET=${{ secrets.JWT_SECRET || 'ci_deploy_secret' }}
+          CORS_ORIGIN=http://localhost:5173
+          SPOTIFY_CLIENT_ID=${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET=${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          SPOTIFY_REDIRECT_URI=http://127.0.0.1:4000/api/spotify/callback
+          EOF
+
+      - name: Levantar el stack (Docker Compose)
+        run: docker compose up -d --build
+
+      - name: Esperar a que el backend esté saludable
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4000/api/health >/dev/null; then
+              echo "Backend saludable :)"
+              exit 0
+            fi
+            echo "Esperando al backend ($i/30)..."
+            sleep 5
+          done
+          echo "::error::El backend no respondió a tiempo"
+          docker compose logs
+          exit 1
+
+      - name: Smoke test (health + login JWT)
+        run: |
+          echo "== health =="
+          curl -sf http://localhost:4000/api/health
+          echo ""
+          echo "== login admin =="
+          TOKEN=$(curl -sf -X POST http://localhost:4000/api/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"identifier":"admin@overdrive.app","password":"Admin123!"}' \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+          echo "JWT obtenido: ${TOKEN:0:25}..."
+          echo "== endpoint protegido con el token =="
+          curl -sf http://localhost:4000/api/playlists \
+            -H "Authorization: Bearer $TOKEN" >/dev/null && echo "Acceso autorizado OK"
+
+      - name: Detener el stack
+        if: always()
+        run: docker compose down -v

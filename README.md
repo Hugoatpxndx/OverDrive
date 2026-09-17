@@ -160,15 +160,27 @@ El pipeline en `.github/workflows/ci.yml` ejecuta automáticamente en cada push/
 1. **backend-tests**: Instala, corre `npm test` y valida cobertura ≥80%.
 2. **frontend-build**: Compila el frontend.
 3. **security-scan**: Escaneo de vulnerabilidades (`npm audit`).
-4. **sonarqube**: Análisis de calidad de código.
+4. **sonarqube**: Análisis de calidad de código (opcional, requiere secrets).
+5. **deploy**: Despliegue automático a un **entorno de prueba** con Docker Compose
+   y *smoke test* (health + login JWT real). Se ejecuta en push a `main`.
 
 ### Secrets necesarios en GitHub
 
 | Secret | Descripción |
 |--------|-------------|
 | `JWT_SECRET` | Clave secreta JWT |
-| `SONAR_TOKEN` | Token de SonarQube |
-| `SONAR_HOST_URL` | URL de tu servidor SonarQube |
+| `SONAR_TOKEN` | Token de SonarQube (opcional) |
+| `SONAR_HOST_URL` | URL de tu servidor SonarQube (opcional) |
+| `SPOTIFY_CLIENT_ID` | Client ID de Spotify (opcional, para el deploy) |
+| `SPOTIFY_CLIENT_SECRET` | Client Secret de Spotify (opcional, para el deploy) |
+
+### Documentación del proyecto
+
+| Documento | Contenido |
+|-----------|-----------|
+| `docs/informe-cierre.md` | Cierre del proyecto: planificado vs. ejecutado, lecciones y plan de mejora |
+| `docs/presentacion-final.md` | Guion de la presentación de 15 min |
+| `docs/zap-report.html` | Reporte del escaneo de seguridad OWASP ZAP |
 
 ---
 
