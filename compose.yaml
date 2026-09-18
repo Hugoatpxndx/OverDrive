@@ -34,10 +34,13 @@ services:
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/database/migrations/001_spotify_tokens.sql:/docker-entrypoint-initdb.d/02-spotify-tokens.sql:ro
     healthcheck:
+      # start_period: los fallos durante la primera inicialización de la BD
+      # (volumen nuevo) no cuentan como "unhealthy".
       test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
       interval: 5s
       timeout: 5s
-      retries: 30
+      retries: 60
+      start_period: 30s
     networks:
       - overdrive-net
 
