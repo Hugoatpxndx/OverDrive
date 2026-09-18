@@ -28,7 +28,12 @@ jobs:
       - name: Instalar dependencias del backend
         working-directory: backend
         run: |
-          npm ci || npm install
+          for i in 1 2 3 4; do
+            npm ci && break
+            echo "npm ci falló (intento $i); reintentando..."
+            sleep 10
+          done
+          npm install
 
       - name: Verificar sintaxis de Node.js
         working-directory: backend
@@ -86,7 +91,12 @@ jobs:
       - name: Instalar dependencias del frontend
         working-directory: frontend
         run: |
-          npm ci || npm install
+          for i in 1 2 3 4; do
+            npm ci && break
+            echo "npm ci falló (intento $i); reintentando..."
+            sleep 10
+          done
+          npm install
 
       - name: Construir el frontend
         working-directory: frontend
@@ -163,8 +173,9 @@ jobs:
 
   # ============================================================
   # Job 5: Despliegue en entorno de prueba (CD)
-  # Levanta el stack completo (BD + API + Frontend) en el runner y
-  # valida con un smoke test (health + login JWT real contra la BD).
+  # Valida el stack servible (BD + API) y hace un smoke test real:
+  # health + login JWT del admin contra la BD + endpoint protegido.
+  # El frontend ya se compila y valida en el job frontend-build.
   # Usa el servicio MySQL precargado en el runner + Node nativo para
   # evitar descargas de imágenes (los pulls de Docker Hub suelen
   # fallar por rate limits en los runners).
@@ -219,46 +230,36 @@ jobs:
 
       - name: Instalar dependencias del backend
         working-directory: backend
-        run: npm ci || npm install
+        run: |
+          for i in 1 2 3 4; do
+            npm ci && break
+            echo "npm ci falló (intento $i); reintentando..."
+            sleep 10
+          done
+          npm install
 
       - name: Inicializar esquema de la BD
         working-directory: backend
         run: npm run db:init
 
-      - name: Configurar Node.js (frontend)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Instalar y compilar el frontend
-        working-directory: frontend
-        run: |
-          npm ci || npm install
-          npm run build
-
-      - name: Arrancar backend y frontend
+      - name: Arrancar el backend
         run: |
           cd backend
           setsid nohup node server.js > /tmp/overdrive-backend.log 2>&1 < /dev/null &
           disown
-          cd "$GITHUB_WORKSPACE/frontend"
-          setsid nohup npx vite preview --host 0.0.0.0 --port 5173 > /tmp/overdrive-frontend.log 2>&1 < /dev/null &
-          disown
 
-      - name: Esperar a que backend y frontend estén arriba
+      - name: Esperar a que el backend esté saludable
         run: |
           for i in $(seq 1 30); do
-            OK_BE=$(curl -sf http://localhost:4000/api/health >/dev/null && echo 1 || echo 0)
-            OK_FE=$(curl -sf http://localhost:5173 >/dev/null && echo 1 || echo 0)
-            echo "($i/30) backend=$OK_BE frontend=$OK_FE"
-            [ "$OK_BE" = "1" ] && [ "$OK_FE" = "1" ] && { echo "Stack arriba :)"; exit 0; }
+            if curl -sf http://localhost:4000/api/health >/dev/null; then
+              echo "Backend saludable :)"
+              exit 0
+            fi
+            echo "Esperando al backend ($i/30)..."
             sleep 5
           done
-          echo "::error::El stack no respondió a tiempo"
-          echo "--- backend ---"; tail -40 /tmp/overdrive-backend.log
-          echo "--- frontend ---"; tail -40 /tmp/overdrive-frontend.log
+          echo "::error::El backend no respondió a tiempo"
+          tail -40 /tmp/overdrive-backend.log
           exit 1
 
       - name: Smoke test (health + login JWT)
@@ -266,8 +267,6 @@ jobs:
           echo "== health =="
           curl -sf http://localhost:4000/api/health
           echo ""
-          echo "== frontend =="
-          curl -sf http://localhost:5173 | grep -o '<title>[^<]*</title>' || echo "(frontend responde)"
           echo "== login admin =="
           TOKEN=$(curl -sf -X POST http://localhost:4000/api/auth/login \
             -H 'Content-Type: application/json' \
@@ -329,7 +328,13 @@ jobs:
 
       - name: Instalar dependencias del backend
         working-directory: backend
-        run: npm ci || npm install
+        run: |
+          for i in 1 2 3 4; do
+            npm ci && break
+            echo "npm ci falló (intento $i); reintentando..."
+            sleep 10
+          done
+          npm install
 
       - name: Preparar reportes e inicializar la BD
         working-directory: backend
