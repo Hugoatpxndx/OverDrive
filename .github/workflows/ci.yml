@@ -21,7 +21,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
@@ -79,7 +79,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -106,7 +106,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Escaneo de vulnerabilidades en dependencias (backend)
         working-directory: backend
@@ -163,8 +163,11 @@ jobs:
 
   # ============================================================
   # Job 5: Despliegue en entorno de prueba (CD)
-  # Levanta el stack completo con Docker Compose en el runner y
+  # Levanta el stack completo (BD + API + Frontend) en el runner y
   # valida con un smoke test (health + login JWT real contra la BD).
+  # Usa el servicio MySQL precargado en el runner + Node nativo para
+  # evitar descargas de imágenes (los pulls de Docker Hub suelen
+  # fallar por rate limits en los runners).
   # Se ejecuta solo en push a main (despliegue continuo).
   # ============================================================
   deploy:
@@ -173,56 +176,89 @@ jobs:
     needs: [backend-tests, frontend-build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "2010"
+          MYSQL_DATABASE: overdrive
+          MYSQL_USER: overdrive_user
+          MYSQL_PASSWORD: "2010"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u root -p2010"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      PORT: 4000
+      NODE_ENV: production
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: overdrive_user
+      DB_PASSWORD: "2010"
+      DB_NAME: overdrive
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci_deploy_secret' }}
+      CORS_ORIGIN: http://localhost:5173
+      SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+      SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+      SPOTIFY_REDIRECT_URI: http://127.0.0.1:4000/api/spotify/callback
+
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      - name: Crear archivo de entorno para el despliegue
-        run: |
-          cat > backend/.env <<EOF
-          PORT=4000
-          NODE_ENV=production
-          DB_HOST=db
-          DB_PORT=3306
-          DB_USER=overdrive_user
-          DB_PASSWORD=2010
-          DB_NAME=overdrive
-          JWT_SECRET=${{ secrets.JWT_SECRET || 'ci_deploy_secret' }}
-          CORS_ORIGIN=http://localhost:5173
-          SPOTIFY_CLIENT_ID=${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET=${{ secrets.SPOTIFY_CLIENT_SECRET }}
-          SPOTIFY_REDIRECT_URI=http://127.0.0.1:4000/api/spotify/callback
-          EOF
+      - name: Configurar Node.js (backend)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
-      - name: Levantar el stack (Docker Compose)
-        run: |
-          # Los pulls de imágenes son propensos a fallos transitorios
-          # (rate limits / red); se reintenta el build+up.
-          for i in 1 2 3 4; do
-            echo "== Intento $i de levantar el stack =="
-            if docker compose up -d --build; then
-              echo "Stack levantado correctamente"
-              exit 0
-            fi
-            echo "Fallo en el intento $i; reintentando..."
-            docker compose down -v --remove-orphans 2>/dev/null || true
-            sleep 15
-          done
-          docker compose logs
-          exit 1
+      - name: Instalar dependencias del backend
+        working-directory: backend
+        run: npm ci || npm install
 
-      - name: Esperar a que el backend esté saludable
+      - name: Inicializar esquema de la BD
+        working-directory: backend
+        run: npm run db:init
+
+      - name: Configurar Node.js (frontend)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar y compilar el frontend
+        working-directory: frontend
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: Arrancar backend y frontend
+        run: |
+          cd backend
+          setsid nohup node server.js > /tmp/overdrive-backend.log 2>&1 < /dev/null &
+          disown
+          cd "$GITHUB_WORKSPACE/frontend"
+          setsid nohup npx vite preview --host 0.0.0.0 --port 5173 > /tmp/overdrive-frontend.log 2>&1 < /dev/null &
+          disown
+
+      - name: Esperar a que backend y frontend estén arriba
         run: |
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:4000/api/health >/dev/null; then
-              echo "Backend saludable :)"
-              exit 0
-            fi
-            echo "Esperando al backend ($i/30)..."
+            OK_BE=$(curl -sf http://localhost:4000/api/health >/dev/null && echo 1 || echo 0)
+            OK_FE=$(curl -sf http://localhost:5173 >/dev/null && echo 1 || echo 0)
+            echo "($i/30) backend=$OK_BE frontend=$OK_FE"
+            [ "$OK_BE" = "1" ] && [ "$OK_FE" = "1" ] && { echo "Stack arriba :)"; exit 0; }
             sleep 5
           done
-          echo "::error::El backend no respondió a tiempo"
-          docker compose logs
+          echo "::error::El stack no respondió a tiempo"
+          echo "--- backend ---"; tail -40 /tmp/overdrive-backend.log
+          echo "--- frontend ---"; tail -40 /tmp/overdrive-frontend.log
           exit 1
 
       - name: Smoke test (health + login JWT)
@@ -230,6 +266,8 @@ jobs:
           echo "== health =="
           curl -sf http://localhost:4000/api/health
           echo ""
+          echo "== frontend =="
+          curl -sf http://localhost:5173 | grep -o '<title>[^<]*</title>' || echo "(frontend responde)"
           echo "== login admin =="
           TOKEN=$(curl -sf -X POST http://localhost:4000/api/auth/login \
             -H 'Content-Type: application/json' \
@@ -240,14 +278,10 @@ jobs:
           curl -sf http://localhost:4000/api/playlists \
             -H "Authorization: Bearer $TOKEN" >/dev/null && echo "Acceso autorizado OK"
 
-      - name: Detener el stack
-        if: always()
-        run: docker compose down -v
-
   # ============================================================
   # Job 6: Pruebas de seguridad (OWASP ZAP)
-  # Levanta la API con Docker Compose y ejecuta un escaneo
-  # baseline de ZAP. Publica el reporte como artifact.
+  # Levanta la API (servicio MySQL + Node nativo) y ejecuta un
+  # escaneo baseline de ZAP. Publica el reporte como artifact.
   # Usa -I para no fallar por advertencias (solo por fallos).
   # ============================================================
   zap-scan:
@@ -255,39 +289,59 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend-tests]
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "2010"
+          MYSQL_DATABASE: overdrive
+          MYSQL_USER: overdrive_user
+          MYSQL_PASSWORD: "2010"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u root -p2010"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      PORT: 4000
+      NODE_ENV: production
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: overdrive_user
+      DB_PASSWORD: "2010"
+      DB_NAME: overdrive
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci_zap_secret' }}
+      CORS_ORIGIN: http://localhost:5173
+
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      - name: Crear archivo de entorno
-        run: |
-          mkdir -p zap-reports
-          cat > backend/.env <<EOF
-          PORT=4000
-          NODE_ENV=production
-          DB_HOST=db
-          DB_PORT=3306
-          DB_USER=overdrive_user
-          DB_PASSWORD=2010
-          DB_NAME=overdrive
-          JWT_SECRET=${{ secrets.JWT_SECRET || 'ci_zap_secret' }}
-          CORS_ORIGIN=http://localhost:5173
-          EOF
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
-      - name: Levantar la base de datos y el backend
+      - name: Instalar dependencias del backend
+        working-directory: backend
+        run: npm ci || npm install
+
+      - name: Preparar reportes e inicializar la BD
+        working-directory: backend
         run: |
-          for i in 1 2 3 4; do
-            echo "== Intento $i de levantar db+backend =="
-            if docker compose up -d --build db backend; then
-              echo "db+backend levantados"
-              exit 0
-            fi
-            echo "Fallo en el intento $i; reintentando..."
-            docker compose down -v --remove-orphans 2>/dev/null || true
-            sleep 15
-          done
-          docker compose logs
-          exit 1
+          mkdir -p "$GITHUB_WORKSPACE/zap-reports"
+          npm run db:init
+
+      - name: Arrancar el backend
+        working-directory: backend
+        run: |
+          setsid nohup node server.js > /tmp/overdrive-backend.log 2>&1 < /dev/null &
+          disown
 
       - name: Esperar a que el backend esté saludable
         run: |
@@ -300,7 +354,7 @@ jobs:
             sleep 5
           done
           echo "::error::El backend no respondió a tiempo"
-          docker compose logs
+          tail -40 /tmp/overdrive-backend.log
           exit 1
 
       - name: Escaneo OWASP ZAP (baseline)
@@ -321,7 +375,3 @@ jobs:
         with:
           name: zap-report
           path: zap-reports/
-
-      - name: Detener el stack
-        if: always()
-        run: docker compose down -v
