@@ -10,6 +10,22 @@ const spotify = require('../config/spotify');
 const oauthStates = new Map();
 const STATE_TTL = 10 * 60 * 1000; // 10 minutos
 
+// Ejecuta tareas con un límite de concurrencia (evita saturar la API
+// con 50+ llamadas simultáneas, pero no hacerlas en serie).
+const mapWithConcurrency = async (items, limit, fn) => {
+  const results = new Array(items.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      results[idx] = await fn(items[idx], idx);
+    }
+  };
+  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+  await Promise.all(workers);
+  return results;
+};
+
 // Limpiar estados caducados (previene acumulación en memoria)
 const cleanupStates = () => {
   const now = Date.now();
@@ -93,7 +109,7 @@ const importPlaylists = async (req, res) => {
   const userId = req.user.id;
   try {
     const rows = await executeQuery(
-      'SELECT spotify_access_token, spotify_refresh_token FROM users WHERE id = ?',
+      'SELECT id, spotify_access_token, spotify_refresh_token FROM users WHERE id = ?',
       [userId]
     );
     if (rows.length === 0) {
@@ -107,6 +123,26 @@ const importPlaylists = async (req, res) => {
 
     const playlists = await fetchWithRefresh(user, spotify.getMyPlaylists);
 
+    // Los followers se consultan por playlist; en paralelo (con límite) para
+    // no hacer N llamadas en serie. Si una falla, se conserva 0 (no bloquea).
+    const followersList = await mapWithConcurrency(playlists, 5, async (p) => {
+      const spotifyId = (p.id || '').slice(0, 80);
+      try {
+        const followers = Number.isInteger(p.followers?.total)
+          ? p.followers.total
+          : await fetchWithRefresh(
+              user,
+              (tok) => spotify.getPlaylistFollowers(tok, spotifyId)
+            );
+        return { spotifyId, followers };
+      } catch (err) {
+        return { spotifyId, followers: 0 };
+      }
+    });
+    const followersByPlaylist = new Map(
+      followersList.map((f) => [f.spotifyId, f.followers])
+    );
+
     let importedCount = 0;
     for (const p of playlists) {
       const spotifyId = (p.id || '').slice(0, 80);
@@ -116,16 +152,7 @@ const importPlaylists = async (req, res) => {
         `https://open.spotify.com/playlist/${spotifyId}`
       ).slice(0, 500);
 
-      // El campo followers no viene en /me/playlists: se consulta aparte.
-      let followers = Number.isInteger(p.followers?.total) ? p.followers.total : 0;
-      try {
-        followers = await fetchWithRefresh(
-          user,
-          (tok) => spotify.getPlaylistFollowers(tok, spotifyId)
-        );
-      } catch (err) {
-        // Si falla la consulta individual, se conserva el valor anterior (0)
-      }
+      const followers = followersByPlaylist.get(spotifyId) || 0;
 
       await executeQuery(
         `INSERT INTO playlists (user_id, spotify_id, name, followers, spotify_url)
