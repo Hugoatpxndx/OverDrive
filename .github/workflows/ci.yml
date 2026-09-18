@@ -195,7 +195,21 @@ jobs:
           EOF
 
       - name: Levantar el stack (Docker Compose)
-        run: docker compose up -d --build
+        run: |
+          # Los pulls de imágenes son propensos a fallos transitorios
+          # (rate limits / red); se reintenta el build+up.
+          for i in 1 2 3 4; do
+            echo "== Intento $i de levantar el stack =="
+            if docker compose up -d --build; then
+              echo "Stack levantado correctamente"
+              exit 0
+            fi
+            echo "Fallo en el intento $i; reintentando..."
+            docker compose down -v --remove-orphans 2>/dev/null || true
+            sleep 15
+          done
+          docker compose logs
+          exit 1
 
       - name: Esperar a que el backend esté saludable
         run: |
@@ -261,7 +275,19 @@ jobs:
           EOF
 
       - name: Levantar la base de datos y el backend
-        run: docker compose up -d --build db backend
+        run: |
+          for i in 1 2 3 4; do
+            echo "== Intento $i de levantar db+backend =="
+            if docker compose up -d --build db backend; then
+              echo "db+backend levantados"
+              exit 0
+            fi
+            echo "Fallo en el intento $i; reintentando..."
+            docker compose down -v --remove-orphans 2>/dev/null || true
+            sleep 15
+          done
+          docker compose logs
+          exit 1
 
       - name: Esperar a que el backend esté saludable
         run: |
