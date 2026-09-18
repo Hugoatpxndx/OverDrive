@@ -126,10 +126,24 @@ const getPlaylistFollowers = async (accessToken, playlistId) => {
   return resp.data.followers?.total || 0;
 };
 
+// Obtiene el perfil del usuario autenticado (/v1/me). Se usa para
+// identificar de forma inequívoca la cuenta de Spotify (id) y evitar
+// que la misma cuenta quede vinculada a dos cuentas de OverDrive.
+const getSpotifyUser = async (accessToken) => {
+  const resp = await withRetry(() =>
+    axios.get(`${API_URL}/me`, {
+      ...defaultConfig,
+      headers: { Authorization: `Bearer ${accessToken}` }
+    }), 2
+  );
+  return resp.data;
+};
+
 module.exports = {
   buildAuthUrl,
   exchangeCode,
   refreshAccessToken,
+  getSpotifyUser,
   getMyPlaylists,
   getPlaylistFollowers
 };

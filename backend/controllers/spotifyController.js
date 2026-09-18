@@ -71,12 +71,39 @@ const spotifyCallback = async (req, res) => {
       return redirect('error');
     }
 
+    // Identificar la cuenta de Spotify (id de /v1/me) para impedir que la
+    // misma cuenta quede vinculada a dos usuarios de OverDrive.
+    // Si la llamada a /me falla (red), se vincula igual pero sin identidad
+    // (spotify_user_id NULL) para no bloquear la conexión por un hipo de red.
+    let spotifyUserId = null;
+    try {
+      const me = await spotify.getSpotifyUser(tokens.access_token);
+      spotifyUserId = (me && (me.id || me.email)) || null;
+    } catch (meErr) {
+      console.error('No se pudo identificar la cuenta de Spotify al vincular:', meErr.message);
+    }
+
+    if (spotifyUserId) {
+      const linkedRows = await executeQuery(
+        'SELECT id, username FROM users WHERE spotify_user_id = ? AND id <> ?',
+        [spotifyUserId, stateData.userId]
+      );
+      if (linkedRows.length > 0) {
+        console.warn(
+          `Rechazado: la cuenta de Spotify ${spotifyUserId} ya está vinculada al usuario ` +
+          `"${linkedRows[0].username}" (id ${linkedRows[0].id})`
+        );
+        return redirect('linked');
+      }
+    }
+
     // Guardar tokens del curador en su cuenta de OverDrive
     await executeQuery(
       `UPDATE users
-       SET spotify_access_token = ?, spotify_refresh_token = ?, spotify_connected_at = NOW()
+       SET spotify_access_token = ?, spotify_refresh_token = ?, spotify_connected_at = NOW(),
+           spotify_user_id = COALESCE(?, spotify_user_id)
        WHERE id = ?`,
-      [tokens.access_token, tokens.refresh_token, stateData.userId]
+      [tokens.access_token, tokens.refresh_token, spotifyUserId, stateData.userId]
     );
 
     return redirect('connected');
@@ -205,7 +232,8 @@ const disconnectSpotify = async (req, res) => {
   try {
     await executeQuery(
       `UPDATE users
-       SET spotify_access_token = NULL, spotify_refresh_token = NULL, spotify_connected_at = NULL
+       SET spotify_access_token = NULL, spotify_refresh_token = NULL,
+           spotify_connected_at = NULL, spotify_user_id = NULL
        WHERE id = ?`,
       [req.user.id]
     );

@@ -23,7 +23,7 @@ router.post(
       .withMessage('URL del track es obligatoria')
       .isLength({ max: 500 })
       .withMessage('URL demasiado larga')
-      .matches(/^https?:\/\/open\.spotify\.com\/track\/[a-zA-Z0-9]{6,40}$/)
+      .matches(/^https?:\/\/open\.spotify\.com\/track\/[a-zA-Z0-9]{6,40}(\?[a-zA-Z0-9&=._%+-]*)?$/)
       .withMessage('Debe ser una URL válida de track de Spotify'),
     body('playlistId')
       .isInt({ min: 1 })

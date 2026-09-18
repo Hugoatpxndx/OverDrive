@@ -23,12 +23,20 @@ const dbState = {
     spotify_access_token: null,
     spotify_refresh_token: null
   },
-  noUser: false
+  noUser: false,
+  // Si otro usuario tiene vinculada la misma cuenta de Spotify:
+  // { id, username } devuelto por la consulta de conflicto; null = sin conflicto
+  spotifyLinkedTo: null
 };
 
 jest.mock('../config/db', () => {
   return {
     executeQuery: jest.fn(async (sql, params) => {
+      // Consulta de identidad: ¿esta cuenta de Spotify ya está en otro usuario?
+      if (sql.includes('spotify_user_id = ?')) {
+        if (!dbState.spotifyLinkedTo) return [];
+        return [{ id: dbState.spotifyLinkedTo, username: 'admin' }];
+      }
       if (sql.includes('FROM users WHERE id')) {
         if (dbState.noUser) return [];
         const userId = params[0];
@@ -49,6 +57,7 @@ jest.mock('../config/spotify', () => ({
   buildAuthUrl: (state) => `https://accounts.spotify.com/authorize?client_id=x&state=${state}`,
   exchangeCode: jest.fn(async () => ({ access_token: 'new_access', refresh_token: 'new_refresh' })),
   refreshAccessToken: jest.fn(async () => ({ access_token: 'refreshed_access' })),
+  getSpotifyUser: jest.fn(async () => ({ id: 'spot_user_1', email: 'spot@example.com' })),
   getMyPlaylists: jest.fn(async () => [
     { id: 'pl_famous', name: 'Famous Hits', external_urls: { spotify: 'https://open.spotify.com/playlist/pl_famous' } },
     { id: 'pl_empty', name: 'Sin seguidores', external_urls: { spotify: 'https://open.spotify.com/playlist/pl_empty' } }
@@ -134,6 +143,26 @@ describe('Integración Spotify', () => {
 
       expect(res.status).toBe(302);
       expect(res.headers.location).toContain('spotify=error');
+    });
+
+    test('Debe rechazar si la cuenta de Spotify ya está vinculada a otra cuenta (302 linked)', async () => {
+      // La consulta de identidad detecta que 'spot_user_1' pertenece al usuario 1
+      dbState.spotifyLinkedTo = 1;
+      try {
+        const authRes = await request(app)
+          .get('/api/spotify/auth-url')
+          .set('Authorization', `Bearer ${tokenFor(2, 'usuario')}`);
+        const state = new URL(authRes.body.authUrl).searchParams.get('state');
+
+        const res = await request(app).get(
+          `/api/spotify/callback?code=codigo&state=${state}`
+        );
+
+        expect(res.status).toBe(302);
+        expect(res.headers.location).toContain('spotify=linked');
+      } finally {
+        dbState.spotifyLinkedTo = null;
+      }
     });
   });
 

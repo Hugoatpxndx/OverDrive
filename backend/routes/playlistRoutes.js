@@ -28,7 +28,7 @@ router.post(
       .withMessage('URL de la playlist es obligatoria')
       .isLength({ max: 500 })
       .withMessage('URL demasiado larga')
-      .matches(/^https?:\/\/open\.spotify\.com\/playlist\/[a-zA-Z0-9]{10,40}$/)
+      .matches(/^https?:\/\/open\.spotify\.com\/playlist\/[a-zA-Z0-9]{10,40}(\?[a-zA-Z0-9&=._%+-]*)?$/)
       .withMessage('Debe ser una URL válida de playlist de Spotify'),
     body('followers')
       .optional()

@@ -25,10 +25,15 @@ CREATE TABLE IF NOT EXISTS users (
   spotify_access_token  VARCHAR(500) NULL,
   spotify_refresh_token VARCHAR(500) NULL,
   spotify_connected_at  TIMESTAMP NULL,
+  -- Identidad de la cuenta de Spotify vinculada (/v1/me). Evita que una
+  -- misma cuenta de Spotify se vincule a dos cuentas de OverDrive.
+  spotify_user_id       VARCHAR(80)  NULL,
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   -- Restricción del tope de billetera (Wallet Cap): máx 10 tokens
-  CONSTRAINT chk_tokens_max CHECK (tokens <= 10)
+  CONSTRAINT chk_tokens_max CHECK (tokens <= 10),
+  -- Una cuenta de Spotify solo puede estar vinculada a un usuario
+  CONSTRAINT uq_users_spotify_id UNIQUE (spotify_user_id)
 ) ENGINE=InnoDB;
 
 -- ============================================================

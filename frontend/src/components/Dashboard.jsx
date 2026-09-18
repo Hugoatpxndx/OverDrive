@@ -77,6 +77,8 @@ const Dashboard = () => {
       setSpotifyStatus('connected');
     if (status === 'error')
       setSpotifyStatus('error');
+    if (status === 'linked')
+      setSpotifyStatus('linked');
     if (status) setSearchParams({}, { replace: true });
 
     loadStatus();
@@ -231,6 +233,9 @@ const Dashboard = () => {
       )}
       {spotifyStatus === 'error' && (
         <div className="error-message">No se pudo conectar con Spotify. Revisa la Redirect URI en el Dashboard de Spotify.</div>
+      )}
+      {spotifyStatus === 'linked' && (
+        <div className="error-message">⚠️ Esta cuenta de Spotify ya está vinculada a otra cuenta de OverDrive. Desconéctala primero en la otra cuenta, o usa otra cuenta de Spotify.</div>
       )}
 
       {/* Alternar modo Artista / Curador */}

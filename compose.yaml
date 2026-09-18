@@ -33,6 +33,7 @@ services:
       # 01 = esquema (crea tablas + admin), 02 = migración de Spotify.
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/database/migrations/001_spotify_tokens.sql:/docker-entrypoint-initdb.d/02-spotify-tokens.sql:ro
+      - ./backend/database/migrations/002_spotify_identity.sql:/docker-entrypoint-initdb.d/03-spotify-identity.sql:ro
     healthcheck:
       # start_period: los fallos durante la primera inicialización de la BD
       # (volumen nuevo) no cuentan como "unhealthy".

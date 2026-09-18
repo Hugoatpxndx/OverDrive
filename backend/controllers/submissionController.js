@@ -12,6 +12,19 @@ const sanitizeString = (value) => {
     .trim();
 };
 
+// Quita los parámetros de seguimiento (si=...) que añade Spotify al copiar
+// un enlace, para guardar la URL limpia y evitar duplicados.
+const normalizeSpotifyUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString();
+  } catch (err) {
+    return url;
+  }
+};
+
 // Extraer el ID del track de Spotify desde la URL
 const extractSpotifyTrackId = (url) => {
   try {
@@ -41,10 +54,14 @@ const submitSong = async (req, res) => {
 
     // Validación estricta de la URL del track (inicio a fin)
     // Debe ser una URL de Spotify que contenga /track/ con ID alfanumérico
-    const urlRegex = /^https?:\/\/open\.spotify\.com\/track\/[a-zA-Z0-9]{6,40}$/;
+    // (se admite la query ?si=... que añade Spotify al copiar).
+    const urlRegex = /^https?:\/\/open\.spotify\.com\/track\/[a-zA-Z0-9]{6,40}(\?[a-zA-Z0-9&=._%+-]*)?$/;
     if (!urlRegex.test(trackUrl)) {
       return res.status(400).json({ error: 'URL inválida: debe ser un enlace de track de Spotify (open.spotify.com/track/...)' });
     }
+
+    // Guardar la URL limpia (sin ?si=...) para evitar duplicados
+    const cleanTrackUrl = normalizeSpotifyUrl(trackUrl);
 
     // Validar ID extraído
     const spotifyTrackId = extractSpotifyTrackId(trackUrl);
@@ -100,7 +117,7 @@ const submitSong = async (req, res) => {
     // Insertar la submission usando prepared statement
     const [insertResult] = await connection.execute(
       'INSERT INTO submissions (artist_id, playlist_id, track_url, track_name) VALUES (?, ?, ?, ?)',
-      [artistId, playlistId, trackUrl, trackName]
+      [artistId, playlistId, cleanTrackUrl, trackName]
     );
 
     // Obtener el estado actualizado de tokens

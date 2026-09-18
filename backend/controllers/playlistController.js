@@ -16,6 +16,18 @@ const sanitizeString = (value) => {
     .trim();
 };
 
+// Quita los parámetros de seguimiento que añade Spotify al copiar un enlace
+const normalizeSpotifyUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString();
+  } catch (err) {
+    return url;
+  }
+};
+
 // Extraer el ID de playlist desde la URL de Spotify
 const extractSpotifyPlaylistId = (url) => {
   try {
