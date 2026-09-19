@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 
 const Dashboard = () => {
   const { user, modo, toggleModo, logout } = useAuth();
@@ -193,6 +194,7 @@ const Dashboard = () => {
             <span className={`user-role badge badge-${rol}`}>{rol}</span>
           </div>
           <span className="badge">Tokens: {user?.tokens}</span>
+          <ThemeToggle />
           <button onClick={logout} className="btn-logout">
             Cerrar sesión
           </button>

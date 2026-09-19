@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import ThemeToggle from '../components/ThemeToggle.jsx';
 
 const Login = () => {
   const [identifier, setIdentifier] = useState('');
@@ -24,6 +25,7 @@ const Login = () => {
 
   return (
     <div className="auth-page">
+      <ThemeToggle className="theme-toggle--corner" />
       <div className="auth-card">
         <aside className="auth-brand">
           <span className="logo-mark logo-mark--lg">OD</span>

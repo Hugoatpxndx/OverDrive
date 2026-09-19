@@ -29,6 +29,16 @@
   --line: #e2e8f0;
   --surface: #ffffff;
   --bg: #f1f5f9;
+  --surface-1: #f8fafc;
+  --input-bg: #ffffff;
+  --placeholder: #94a3b8;
+  --label: #334155;
+  --navbar-bg: rgba(255, 255, 255, 0.9);
+  --brand-text: var(--brand-700);
+  --danger-text: #991b1b;
+  --danger-line: #fecaca;
+  --success-text: #166534;
+  --success-line: #bbf7d0;
 
   --radius: 14px;
   --radius-sm: 10px;
@@ -36,6 +46,62 @@
   --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.16);
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ============================================================
+   Tema oscuro (data-theme="dark" en <html>)
+   ============================================================ */
+[data-theme='dark'] {
+  --brand-50: #1e1b4b;
+  --brand-text: #a5b4fc;
+
+  --ink: #e2e8f0;
+  --muted: #94a3b8;
+  --line: #233047;
+  --surface: #111a2e;
+  --bg: #0b1220;
+  --surface-1: #0e1728;
+  --input-bg: #0d1526;
+  --placeholder: #5b6b82;
+  --label: #cbd5e1;
+  --navbar-bg: rgba(11, 18, 32, 0.85);
+
+  --warning: #fbbf24;
+  --danger-bg: #3b1a1d;
+  --danger-text: #fca5a5;
+  --danger-line: #7f1d1d;
+  --success-bg: #122b1e;
+  --success-text: #86efac;
+  --success-line: #14532d;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.65);
+}
+
+/* Alternancia de tema (botón 🌙/☀️) */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.theme-toggle:hover {
+  border-color: var(--brand-400);
+}
+.theme-toggle--corner {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
 }
 
 * {
@@ -109,6 +175,7 @@ a:hover {
    Autenticación (Login / Register)
    ============================================================ */
 .auth-page {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,7 +281,7 @@ label.field {
   gap: 0.4rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--label);
 }
 label.field input {
   font-weight: 400;
@@ -234,13 +301,13 @@ label.field input {
   font-size: 0.98rem;
   font-family: inherit;
   color: var(--ink);
-  background: #fff;
+  background: var(--input-bg);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .auth-form input::placeholder,
 .enviar-cancion input::placeholder,
 .crear-playlist input::placeholder {
-  color: #94a3b8;
+  color: var(--placeholder);
 }
 .auth-form input:focus,
 .select-playlist:focus,
@@ -302,19 +369,19 @@ label.field input {
 /* Mensajes */
 .error-message {
   background: var(--danger-bg);
-  color: #991b1b;
+  color: var(--danger-text);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--danger-line);
 }
 .message {
   background: var(--success-bg);
-  color: #166534;
+  color: var(--success-text);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
   font-size: 0.92rem;
-  border: 1px solid #bbf7d0;
+  border: 1px solid var(--success-line);
 }
 
 /* ============================================================
@@ -335,7 +402,7 @@ label.field input {
   gap: 1rem;
   flex-wrap: wrap;
   padding: 0.85rem 1.5rem;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--navbar-bg);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
@@ -461,14 +528,14 @@ label.field input {
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  background: #f8fafc;
+  background: var(--surface-1);
   border: 2px solid var(--line);
   color: var(--muted);
   transition: all 0.18s;
 }
 .modo-btn:hover {
   border-color: var(--brand-400);
-  color: var(--brand-700);
+  color: var(--brand-text);
 }
 .modo-btn.active {
   background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
@@ -538,7 +605,7 @@ label.field input {
   gap: 0.6rem;
 }
 .lista li {
-  background: #f8fafc;
+  background: var(--surface-1);
   border: 1px solid var(--line);
   padding: 0.85rem 1rem;
   border-radius: var(--radius-sm);
@@ -550,10 +617,10 @@ label.field input {
 }
 .lista li:hover {
   border-color: var(--brand-400);
-  background: #fff;
+  background: var(--surface);
 }
 .lista a {
-  color: var(--brand-700);
+  color: var(--brand-text);
   font-weight: 600;
 }
 
@@ -566,7 +633,7 @@ label.field input {
   font-size: 0.78rem;
   font-weight: 700;
   background: var(--brand-50);
-  color: var(--brand-700);
+  color: var(--brand-text);
   text-transform: capitalize;
   white-space: nowrap;
 }
@@ -580,11 +647,11 @@ label.field input {
 }
 .badge-aprobada {
   background: var(--success-bg);
-  color: #15803d;
+  color: var(--success-text);
 }
 .badge-rechazada {
   background: var(--danger-bg);
-  color: #b91c1c;
+  color: var(--danger-text);
 }
 
 /* Botones auxiliares */
@@ -608,9 +675,9 @@ label.field input {
 .btn-logout {
   width: auto;
   padding: 0.55rem 1.05rem;
-  background: #fff;
-  color: var(--danger);
-  border: 1px solid #fecaca;
+  background: var(--input-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-line);
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: 700;
@@ -620,12 +687,12 @@ label.field input {
 }
 .btn-logout:hover {
   background: var(--danger-bg);
-  border-color: #fca5a5;
+  border-color: var(--danger-text);
 }
 
 /* Estado vacío */
 .no-items {
-  background: #f8fafc;
+  background: var(--surface-1);
   border: 2px dashed var(--line);
   padding: 2rem 1.5rem;
   text-align: center;
@@ -638,10 +705,10 @@ label.field input {
 /* Admin */
 .admin-panel {
   border: 2px solid var(--brand-600);
-  background: linear-gradient(180deg, var(--brand-50), #fff 45%);
+  background: linear-gradient(180deg, var(--brand-50), var(--surface) 45%);
 }
 .admin-panel h2 {
-  color: var(--brand-700);
+  color: var(--brand-text);
 }
 
 .bandeja-propuestas {
