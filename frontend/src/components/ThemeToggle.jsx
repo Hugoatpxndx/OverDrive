@@ -9,7 +9,8 @@ export const getInitialTheme = () => {
   } catch {
     /* ignore */
   }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Por defecto el tema neón (TRON); el usuario puede alternar y se recuerda.
+  return 'dark';
 };
 
 // Aplica el tema sobre <html> y lo persiste.

@@ -3,13 +3,20 @@
    ============================================================ */
 :root {
   /* Marca */
-  --brand-50: #eef2ff;
-  --brand-100: #e0e7ff;
-  --brand-400: #818cf8;
-  --brand-500: #6366f1;
-  --brand-600: #4f46e5;
-  --brand-700: #4338ca;
-  --brand-900: #1e1b4b;
+  --brand-50: #eef7ff;
+  --brand-100: #e0eeff;
+  --brand-400: #22d3ee;
+  --brand-500: #0ea5e9;
+  --brand-600: #0891b2;
+  --brand-700: #155e75;
+  --brand-900: #164e63;
+
+  /* Neón (acento TRON) */
+  --neon-cyan: #00e5ff;
+  --neon-violet: #a855f7;
+  --glow-weak: rgba(0, 217, 255, 0.35);
+  --glow-strong: rgba(0, 229, 255, 0.6);
+  --focus-ring: rgba(0, 217, 255, 0.25);
 
   /* Spotify */
   --spotify: #1db954;
@@ -49,34 +56,43 @@
 }
 
 /* ============================================================
-   Tema oscuro (data-theme="dark" en <html>)
+   Tema oscuro TRON (data-theme="dark" en <html>)
    ============================================================ */
 [data-theme='dark'] {
-  --brand-50: #1e1b4b;
-  --brand-text: #a5b4fc;
+  --brand-50: #0a1a33;
+  --brand-400: #22d3ee;
+  --brand-500: #00e5ff;
+  --brand-600: #00b8d4;
+  --brand-700: #a855f7;
+  --brand-900: #0f172a;
+  --brand-text: #67e8f9;
 
-  --ink: #e2e8f0;
-  --muted: #94a3b8;
-  --line: #233047;
-  --surface: #111a2e;
-  --bg: #0b1220;
-  --surface-1: #0e1728;
-  --input-bg: #0d1526;
-  --placeholder: #5b6b82;
-  --label: #cbd5e1;
-  --navbar-bg: rgba(11, 18, 32, 0.85);
+  --ink: #e8f1ff;
+  --muted: #8295b5;
+  --line: #1c2942;
+  --surface: #0b1120;
+  --bg: #050810;
+  --surface-1: #0e1628;
+  --input-bg: #090f1c;
+  --placeholder: #4f6d8d;
+  --label: #c7d6ee;
+  --navbar-bg: rgba(5, 8, 16, 0.82);
 
   --warning: #fbbf24;
-  --danger-bg: #3b1a1d;
-  --danger-text: #fca5a5;
-  --danger-line: #7f1d1d;
-  --success-bg: #122b1e;
-  --success-text: #86efac;
+  --danger-bg: #2a1015;
+  --danger-text: #ff9aa2;
+  --danger-line: #6b1c24;
+  --success-bg: #0c2116;
+  --success-text: #7de3a4;
   --success-line: #14532d;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.65);
+  --glow-weak: rgba(0, 229, 255, 0.45);
+  --glow-strong: rgba(0, 229, 255, 0.9);
+  --focus-ring: rgba(0, 229, 255, 0.35);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --shadow: 0 10px 34px rgba(0, 229, 255, 0.08);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.7);
 }
 
 /* Alternancia de tema (botón 🌙/☀️) */
@@ -317,7 +333,7 @@ label.field input {
 .enviar-cancion select:focus {
   outline: none;
   border-color: var(--brand-500);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+  box-shadow: 0 0 0 3px var(--focus-ring), 0 0 10px var(--glow-weak);
 }
 
 .btn,
@@ -760,5 +776,124 @@ label.field input {
   }
   .navbar {
     padding: 0.75rem 1rem;
+  }
+}
+
+/* ============================================================
+   TRON · Neón (dinámico)
+   ============================================================ */
+::selection {
+  background: var(--neon-cyan);
+  color: #050810;
+}
+
+/* Rejilla cyberpunk + orbes de luz (modo oscuro) */
+[data-theme='dark'] body {
+  background:
+    linear-gradient(rgba(0, 229, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 15% -10%, rgba(0, 229, 255, 0.14), transparent 55%),
+    radial-gradient(circle at 95% 115%, rgba(168, 85, 247, 0.16), transparent 55%),
+    var(--bg);
+  background-size: 46px 46px, 46px 46px, 100% 100%, 100% 100%;
+  background-attachment: fixed;
+}
+
+/* Logo: pulso de neón (+ flotación en auth) */
+.logo-mark {
+  animation: od-glow 3.2s ease-in-out infinite;
+}
+.logo-mark--lg {
+  animation: od-glow 3.2s ease-in-out infinite, od-float 5s ease-in-out infinite;
+}
+
+/* Botones primarios con brillo neón (oscuro) */
+[data-theme='dark'] .auth-form button,
+[data-theme='dark'] .crear-playlist button,
+[data-theme='dark'] .modo-btn.active,
+[data-theme='dark'] .enviar-cancion button {
+  box-shadow: 0 0 12px var(--glow-weak), 0 8px 24px rgba(0, 229, 255, 0.22);
+}
+[data-theme='dark'] .auth-form button:hover:not(:disabled),
+[data-theme='dark'] .crear-playlist button:hover:not(:disabled),
+[data-theme='dark'] .enviar-cancion button:hover:not(:disabled) {
+  box-shadow: 0 0 22px var(--glow-strong);
+}
+
+/* Tarjetas: borde luminoso + levitación al pasar el cursor */
+.modo-selector,
+.enviar-cancion,
+.bandeja-entrada,
+.admin-panel,
+.card,
+.stat-card {
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.stat-card:hover,
+.modo-selector:hover,
+.enviar-cancion:hover,
+.bandeja-entrada:hover,
+.card:hover {
+  border-color: var(--brand-400);
+  box-shadow: 0 0 16px var(--glow-weak), var(--shadow-sm);
+  transform: translateY(-2px);
+}
+[data-theme='dark'] .admin-panel {
+  border-color: rgba(0, 229, 255, 0.5);
+}
+
+/* Navbar: línea de energía inferior */
+[data-theme='dark'] .navbar {
+  border-bottom-color: rgba(0, 229, 255, 0.25);
+}
+
+[data-theme='dark'] .theme-toggle {
+  border-color: rgba(0, 229, 255, 0.35);
+}
+
+/* Pantallas de autenticación: rejilla neón en oscuro */
+[data-theme='dark'] .auth-page {
+  background:
+    linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+    radial-gradient(900px 500px at 10% -10%, rgba(0, 229, 255, 0.18), transparent 55%),
+    radial-gradient(800px 500px at 110% 110%, rgba(168, 85, 247, 0.22), transparent 55%),
+    #050810;
+  background-size: 46px 46px, 46px 46px, 100% 100%, 100% 100%;
+}
+
+@keyframes od-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 12px var(--glow-weak);
+  }
+  50% {
+    box-shadow: 0 0 26px var(--glow-strong), 0 4px 20px rgba(168, 85, 247, 0.4);
+  }
+}
+@keyframes od-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Respetar preferencia de menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .logo-mark,
+  .logo-mark--lg {
+    animation: none;
+  }
+  .stat-card,
+  .card,
+  .modo-selector,
+  .enviar-cancion,
+  .bandeja-entrada,
+  .admin-panel {
+    transform: none !important;
+    transition: none;
   }
 }
