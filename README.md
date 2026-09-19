@@ -128,6 +128,38 @@ docker compose down -v
 
 ---
 
+## 🎧 Probar el intercambio con Spotify (2 usuarios)
+
+> **Importante**: la app **no permite** que un artista envíe canciones a su propia
+> playlist, así que necesitas **2 cuentas** (una curadora y una artista).
+
+Cuentas de prueba usadas para el demo:
+
+| Correo (login)               | Rol sugerido | Estado Spotify |
+|------------------------------|--------------|----------------|
+| `overdrivespotify@gmail.com` | Curador      | ok             |
+| `overdrivespotify2@yahoo.com`| Artista      | ok             |
+
+> ⚠️ **Requisito de whitelist**: cada cuenta de Spotify que conecte la app debe estar
+> agregada en el Dashboard de Spotify para desarrolladores → la app del proyecto →
+> **"Users and access"** → agregar el correo de la cuenta. Si no, la Web API responde
+> **403 Forbidden** al leer o escribir playlists (la app pide lectura + escritura).
+
+Flujo:
+
+1. **Curador**: crea/usa un usuario OverDrive, entra a **Modo Curador**, conecta la cuenta de
+   Spotify y presiona **"Actualizar playlists"** para importar playlists.
+2. **Artista**: con otro usuario OverDrive, entra a **Modo Artista** y envía el enlace de un
+   track de Spotify a una playlist de la cuenta curadora (cuesta 1 token).
+3. **Aceptar**: como curador, presiona **"Aceptar"**. La canción se agrega **de verdad** a la
+   playlist y el **artista recupera su token** (+1, tope 10).
+
+> Los pares de contraseñas de estas cuentas (correo y Spotify) y el resto de accesos
+> locales se documentan en `docs/credenciales-prueba.md`, que por seguridad **se
+> mantiene fuera del repositorio** (entregable local).
+
+---
+
 ## 🧪 Pruebas Unitarias (Jest)
 
 ```bash
