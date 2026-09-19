@@ -147,9 +147,12 @@ const getSpotifyUser = async (accessToken) => {
 
 // Agrega una canción (track URI) a una playlist real de Spotify.
 // Se usa cuando el Curador acepta una propuesta (sync real).
+// Nota: desde los cambios de Spotify (2026) el endpoint antiguo
+// /playlists/{id}/tracks devuelve 403 en modo desarrollo; el endpoint
+// vigente es /playlists/{id}/items.
 const addTracksToPlaylist = async (accessToken, playlistSpotifyId, trackUri) => {
   const resp = await withRetry(() =>
-    axios.post(`${API_URL}/playlists/${playlistSpotifyId}/tracks`, {
+    axios.post(`${API_URL}/playlists/${playlistSpotifyId}/items`, {
       uris: [trackUri],
       position: 0
     }, {
