@@ -291,7 +291,7 @@ const Dashboard = () => {
               value={trackUrl}
               onChange={(e) => setTrackUrl(e.target.value)}
               required
-              pattern="https?://open\.spotify\.com/track/[a-zA-Z0-9]+"
+              pattern="https?://open\.spotify\.com/track/[a-zA-Z0-9]+(\?[a-zA-Z0-9&=._%+-]*)?"
             />
             <button type="submit" disabled={!user?.tokens}>
               Enviar (cuesta 1 token)
@@ -367,7 +367,7 @@ const Dashboard = () => {
               value={plUrl}
               onChange={(e) => setPlUrl(e.target.value)}
               required
-              pattern="https?://open\.spotify\.com/playlist/[a-zA-Z0-9]+"
+              pattern="https?://open\.spotify\.com/playlist/[a-zA-Z0-9]+(\?[a-zA-Z0-9&=._%+-]*)?"
             />
             <input
               type="number"
