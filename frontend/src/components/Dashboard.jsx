@@ -13,6 +13,7 @@ const Dashboard = () => {
   const [myPlaylists, setMyPlaylists] = useState([]);      // propias (curador)
   const [incoming, setIncoming] = useState([]);            // propuestas recibidas (curador)
   const [mySubmissions, setMySubmissions] = useState([]);  // propuestas enviadas (artista)
+  const [users, setUsers] = useState([]);                   // listado del panel admin
 
   // Formularios
   const [trackUrl, setTrackUrl] = useState('');
@@ -45,16 +46,18 @@ const Dashboard = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [plRes, incRes, subRes] = await Promise.all([
+      const [plRes, incRes, subRes, usersRes] = await Promise.all([
         api.get('/api/playlists'),
         api.get('/api/submissions/curator').catch(() => ({ data: { submissions: [] } })),
-        api.get('/api/submissions').catch(() => ({ data: { submissions: [] } }))
+        api.get('/api/submissions').catch(() => ({ data: { submissions: [] } })),
+        api.get('/api/admin/users').catch(() => ({ data: { users: [] } }))
       ]);
       const allPl = plRes.data.playlists || [];
       setPlaylists(allPl.filter((p) => p.owner_id !== user?.id));
       setMyPlaylists(allPl.filter((p) => p.owner_id === user?.id));
       setIncoming(incRes.data.submissions || []);
       setMySubmissions(subRes.data.submissions || []);
+      setUsers(usersRes.data.users || []);
     } catch (err) {
       setError('No se pudieron cargar las playlists');
     } finally {
@@ -424,6 +427,39 @@ const Dashboard = () => {
             Como administrador puedes probar el flujo completo: crea una playlist con tu cuenta
             de Spotify y acepta propuestas para ver el intercambio de tokens.
           </p>
+          <div className="admin-users">
+            <h3>Usuarios registrados ({users.length})</h3>
+            {users.length > 0 ? (
+              <table className="tabla-admin">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Tokens</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.id}</td>
+                      <td>{u.username}</td>
+                      <td>{u.email}</td>
+                      <td>
+                        <span className={`badge badge-${u.role === 'administrador' ? 'administrador' : 'usuario'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td>{u.tokens}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="no-items">No hay usuarios registrados.</p>
+            )}
+          </div>
         </section>
       )}
 

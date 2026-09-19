@@ -730,6 +730,40 @@ label.field input {
 .admin-panel h2 {
   color: var(--brand-text);
 }
+.admin-users {
+  margin-top: 1rem;
+}
+.admin-users h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+.tabla-admin {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.tabla-admin th,
+.tabla-admin td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.tabla-admin th {
+  background: var(--surface-1);
+  font-weight: 700;
+  color: var(--brand-text);
+}
+.tabla-admin tr:hover td {
+  background: var(--surface-1);
+}
+@media (max-width: 560px) {
+  .tabla-admin th:nth-child(2),
+  .tabla-admin td:nth-child(2),
+  .tabla-admin th:nth-child(3),
+  .tabla-admin td:nth-child(3) {
+    display: none;
+  }
+}
 
 .bandeja-propuestas {
   margin-top: 1.75rem;
