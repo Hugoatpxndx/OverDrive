@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS submissions (
   token_cost    SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   handled_by    INT UNSIGNED NULL,
+  -- 1 = la canción fue agregada a la playlist real de Spotify al aceptar
+  spotify_synced TINYINT(1) NOT NULL DEFAULT 0,
   updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_submissions_artist   FOREIGN KEY (artist_id)
     REFERENCES users(id)        ON DELETE CASCADE,

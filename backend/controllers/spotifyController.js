@@ -279,5 +279,6 @@ module.exports = {
   spotifyCallback,
   importPlaylists,
   getStatus,
-  disconnectSpotify
+  disconnectSpotify,
+  fetchWithRefresh
 };

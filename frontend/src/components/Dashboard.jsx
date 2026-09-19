@@ -307,6 +307,9 @@ const Dashboard = () => {
                     <a href={s.track_url} target="_blank" rel="noopener noreferrer">{s.track_name || s.track_url}</a>
                     {' → '}{s.playlist_name}
                     <span className={`badge badge-${s.status}`}>{s.status}</span>
+                    {s.spotify_synced === 1 && (
+                      <span className="badge badge-sync">♫ Agregada a Spotify</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -389,6 +392,9 @@ const Dashboard = () => {
                     {' por '}{s.artist}
                     {' → '}{s.playlist_name}
                     <span className={`badge badge-${s.status}`}>{s.status}</span>
+                    {s.spotify_synced === 1 && (
+                      <span className="badge badge-sync">♫ Agregada a Spotify</span>
+                    )}
                     {s.status === 'pendiente' && (
                       <button
                         className="btn-accept"

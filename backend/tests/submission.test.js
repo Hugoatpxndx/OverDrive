@@ -59,7 +59,7 @@ jest.mock('../config/db', () => {
             return [{ affectedRows: 0 }];
           }
           // Query JOIN para aceptar propuesta (submissions + playlists)
-          if (sql.includes('SELECT s.id, s.status, s.playlist_id, p.user_id AS playlist_owner')) {
+          if (sql.includes('p.spotify_id AS playlist_spotify_id')) {
             const sub = dbState.submissions.find((s) => s.id === params[0]);
             if (!sub) {
               return [[]];
@@ -68,7 +68,17 @@ jest.mock('../config/db', () => {
               id: sub.id,
               status: sub.status,
               playlist_id: sub.playlist_id,
-              playlist_owner: dbState.playlists.find((p) => p.id === sub.playlist_id)?.user_id
+              track_url: sub.track_url,
+              playlist_owner: dbState.playlists.find((p) => p.id === sub.playlist_id)?.user_id,
+              playlist_spotify_id: dbState.playlists.find((p) => p.id === sub.playlist_id)?.spotify_id
+            }]];
+          }
+          // Consulta de tokens de Spotify del curador (sync real al aceptar)
+          if (sql.includes('spotify_access_token, spotify_refresh_token')) {
+            return [[{
+              id: params[0],
+              spotify_access_token: 'tok_curator',
+              spotify_refresh_token: 'rf_curator'
             }]];
           }
           // UPDATE de submissions (marcar aprobada)
@@ -137,6 +147,12 @@ jest.mock('../config/db', () => {
     pool: { getConnection: jest.fn() }
   };
 });
+
+// Mock del cliente HTTP de Spotify (no hacer llamadas reales de red)
+jest.mock('../config/spotify', () => ({
+  addTracksToPlaylist: jest.fn(async () => ({ snapshot_id: 'snap_test' })),
+  refreshAccessToken: jest.fn(async () => ({ access_token: 'refreshed_access' }))
+}));
 
 const app = require('../server');
 
@@ -336,15 +352,27 @@ describe('Aceptar Propuestas (Modo Curador)', () => {
     dbState.nextSubId = 2;
   });
 
-  test('El curador dueño debe aceptar la propuesta y ganar 1 token', async () => {
+  test('El curador dueño debe aceptar la propuesta, ganar 1 token y sincronizarla a Spotify', async () => {
+    const { addTracksToPlaylist } = require('../config/spotify');
+
     const token = createToken(2, 'usuario');
     const response = await request(app)
       .post('/api/submissions/1/accept')
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.message).toBe('Propuesta aceptada: 1 token otorgado');
+    expect(response.body.synced).toBe(true);
+    expect(response.body.message).toBe(
+      'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token)'
+    );
     expect(dbState.users.find((u) => u.id === 2).tokens).toBe(6);
+
+    // El sync real llamó a la API de Spotify con la playlist y el track correctos
+    expect(addTracksToPlaylist).toHaveBeenCalledWith(
+      'tok_curator',
+      'playlistA',
+      'spotify:track:4cOdK2wGLETKBW3PvgPWqT'
+    );
   });
 
   test('Debe rechazar aceptación si no es el dueño de la playlist', async () => {

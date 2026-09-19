@@ -669,6 +669,10 @@ label.field input {
   background: var(--danger-bg);
   color: var(--danger-text);
 }
+.badge-sync {
+  background: var(--brand-600);
+  color: #fff;
+}
 
 /* Botones auxiliares */
 .btn-accept {

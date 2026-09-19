@@ -1,4 +1,6 @@
 const { executeQuery, getConnection } = require('../config/db');
+const spotify = require('../config/spotify');
+const { fetchWithRefresh } = require('./spotifyController');
 
 // Sanitización de cadenas para prevenir XSS
 const sanitizeString = (value) => {
@@ -161,7 +163,8 @@ const acceptSubmission = async (req, res) => {
 
     // Obtener la submission junto con su playlist para verificar propiedad
     const [submissionRows] = await connection.execute(
-      `SELECT s.id, s.status, s.playlist_id, p.user_id AS playlist_owner
+      `SELECT s.id, s.status, s.playlist_id, s.track_url,
+              p.user_id AS playlist_owner, p.spotify_id AS playlist_spotify_id
        FROM submissions s
        JOIN playlists p ON p.id = s.playlist_id
        WHERE s.id = ?`,
@@ -182,10 +185,44 @@ const acceptSubmission = async (req, res) => {
       return res.status(400).json({ error: 'La propuesta ya fue procesada' });
     }
 
-    // Marcar como aprobada
+    // Sincronización real con Spotify: agrega la canción a la playlist del
+    // curador al aceptar. Si el curador no tiene Spotify conectado o la API
+    // falla, la aprobación continúa de todos modos (soft fail) y se informa.
+    let synced = false;
+    try {
+      const [curatorRows] = await connection.execute(
+        'SELECT id, spotify_access_token, spotify_refresh_token FROM users WHERE id = ?',
+        [curatorId]
+      );
+      const curator = curatorRows[0] || null;
+      const trackId = extractSpotifyTrackId(submission.track_url || '');
+      if (
+        curator &&
+        (curator.spotify_access_token || curator.spotify_refresh_token) &&
+        submission.playlist_spotify_id &&
+        trackId
+      ) {
+        try {
+          await fetchWithRefresh(curator, (tok) =>
+            spotify.addTracksToPlaylist(
+              tok,
+              submission.playlist_spotify_id,
+              `spotify:track:${trackId}`
+            )
+          );
+          synced = true;
+        } catch (syncErr) {
+          console.error('No se pudo agregar la canción a la playlist de Spotify:', syncErr.message);
+        }
+      }
+    } catch (syncErr) {
+      console.error('No se pudo consultar la conexión de Spotify del curador:', syncErr.message);
+    }
+
+    // Marcar como aprobada (registrando si se sincronizó a Spotify)
     const [updateResult] = await connection.execute(
-      'UPDATE submissions SET status = ?, handled_by = ? WHERE id = ? AND status = ?',
-      ['aprobada', curatorId, submissionId, 'pendiente']
+      'UPDATE submissions SET status = ?, handled_by = ?, spotify_synced = ? WHERE id = ? AND status = ?',
+      ['aprobada', curatorId, synced ? 1 : 0, submissionId, 'pendiente']
     );
 
     if (updateResult.affectedRows === 0) {
@@ -202,9 +239,14 @@ const acceptSubmission = async (req, res) => {
       return res.status(500).json({ error: 'Error al actualizar tokens' });
     }
 
+    const message = synced
+      ? 'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token)'
+      : 'Propuesta aceptada: +1 token otorgado (no sincronizada a Spotify, revisa tu conexión)';
+
     return res.status(200).json({
-      message: 'Propuesta aceptada: 1 token otorgado',
-      submissionId
+      message,
+      submissionId,
+      synced
     });
   } catch (error) {
     console.error('Error al aceptar propuesta:', error);
@@ -219,7 +261,7 @@ const listMySubmissions = async (req, res) => {
   try {
     const userId = req.user.id;
     const rows = await executeQuery(
-      `SELECT s.id, s.track_url, s.track_name, s.status, s.created_at,
+      `SELECT s.id, s.track_url, s.track_name, s.status, s.spotify_synced, s.created_at,
               p.name AS playlist_name
        FROM submissions s
        JOIN playlists p ON p.id = s.playlist_id
@@ -240,7 +282,7 @@ const listCuratorSubmissions = async (req, res) => {
   try {
     const userId = req.user.id;
     const rows = await executeQuery(
-      `SELECT s.id, s.track_url, s.track_name, s.status, s.created_at,
+      `SELECT s.id, s.track_url, s.track_name, s.status, s.spotify_synced, s.created_at,
               p.name AS playlist_name, u.username AS artist
        FROM submissions s
        JOIN playlists p ON p.id = s.playlist_id

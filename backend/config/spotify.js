@@ -16,8 +16,14 @@ const API_URL = 'https://api.spotify.com/v1';
 
 const REQUEST_TIMEOUT = Number(process.env.SPOTIFY_REQUEST_TIMEOUT || 15000);
 
-// Permisos mínimos: leer las playlists propias (públicas y privadas)
-const SCOPES = ['playlist-read-private', 'playlist-read-collaborative'].join(' ');
+// Permisos: leer las playlists propias (públicas y privadas) y poder agregar
+// canciones a ellas cuando el Curador acepta una propuesta (sync real).
+const SCOPES = [
+  'playlist-read-private',
+  'playlist-read-collaborative',
+  'playlist-modify-private',
+  'playlist-modify-public'
+].join(' ');
 
 // Forza IPv4 (evita demoras de ENETUNREACH por IPv6 en redes con hipos)
 const defaultConfig = {
@@ -139,11 +145,30 @@ const getSpotifyUser = async (accessToken) => {
   return resp.data;
 };
 
+// Agrega una canción (track URI) a una playlist real de Spotify.
+// Se usa cuando el Curador acepta una propuesta (sync real).
+const addTracksToPlaylist = async (accessToken, playlistSpotifyId, trackUri) => {
+  const resp = await withRetry(() =>
+    axios.post(`${API_URL}/playlists/${playlistSpotifyId}/tracks`, {
+      uris: [trackUri],
+      position: 0
+    }, {
+      ...defaultConfig,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`
+      }
+    }), 2
+  );
+  return resp.data;
+};
+
 module.exports = {
   buildAuthUrl,
   exchangeCode,
   refreshAccessToken,
   getSpotifyUser,
   getMyPlaylists,
-  getPlaylistFollowers
+  getPlaylistFollowers,
+  addTracksToPlaylist
 };
