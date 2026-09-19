@@ -212,7 +212,15 @@ const acceptSubmission = async (req, res) => {
           );
           synced = true;
         } catch (syncErr) {
-          console.error('No se pudo agregar la canción a la playlist de Spotify:', syncErr.message);
+          const detail =
+            syncErr.response?.data?.error?.message ||
+            syncErr.response?.data?.error?.reason ||
+            syncErr.message;
+          console.error(
+            'No se pudo agregar la canción a la playlist de Spotify:',
+            detail,
+            syncErr.response ? ` (HTTP ${syncErr.response.status})` : ''
+          );
         }
       }
     } catch (syncErr) {
@@ -241,7 +249,7 @@ const acceptSubmission = async (req, res) => {
 
     const message = synced
       ? 'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token)'
-      : 'Propuesta aceptada: +1 token otorgado (no sincronizada a Spotify, revisa tu conexión)';
+      : 'Propuesta aceptada: +1 token otorgado. La canción NO se agregó a Spotify — desconecta y vuelve a conectar tu cuenta para conceder permisos de escritura.';
 
     return res.status(200).json({
       message,

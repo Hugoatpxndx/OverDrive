@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -30,16 +30,34 @@ const Dashboard = () => {
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
 
+  // Popup de confirmación (toast): { type: 'success'|'error', text }
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+
+  const showToast = (text, type = 'success') => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ text, type });
+    toastTimer.current = setTimeout(() => setToast(null), 4500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
   const rol = user?.role || 'usuario';
   const isAdmin = rol === 'administrador';
 
   const showError = (msg) => {
     setError(msg);
     setMessage('');
+    showToast(msg, 'error');
   };
   const showMessage = (msg) => {
     setMessage(msg);
     setError('');
+    showToast(msg, 'success');
   };
 
   // ---------- Carga de datos ----------
@@ -464,6 +482,17 @@ const Dashboard = () => {
       )}
 
       </main>
+
+      {toast && (
+        <div className={`toast toast-${toast.type}`} role="status" aria-live="polite">
+          <span className="toast-icon">{toast.type === 'success' ? '✓' : '⚠'}</span>
+          <div className="toast-body">
+            <strong>{toast.type === 'success' ? '¡Listo!' : 'Error'}</strong>
+            <p>{toast.text}</p>
+          </div>
+          <span className="toast-timer" />
+        </div>
+      )}
 
       <footer className="footer">
         OverDrive · Plataforma de curaduría musical · {new Date().getFullYear()}
