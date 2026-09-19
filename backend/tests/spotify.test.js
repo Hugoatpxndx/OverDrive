@@ -59,8 +59,10 @@ jest.mock('../config/spotify', () => ({
   refreshAccessToken: jest.fn(async () => ({ access_token: 'refreshed_access' })),
   getSpotifyUser: jest.fn(async () => ({ id: 'spot_user_1', email: 'spot@example.com' })),
   getMyPlaylists: jest.fn(async () => [
-    { id: 'pl_famous', name: 'Famous Hits', external_urls: { spotify: 'https://open.spotify.com/playlist/pl_famous' } },
-    { id: 'pl_empty', name: 'Sin seguidores', external_urls: { spotify: 'https://open.spotify.com/playlist/pl_empty' } }
+    { id: 'pl_famous', name: 'Famous Hits', owner: { id: 'spot_user_1' }, external_urls: { spotify: 'https://open.spotify.com/playlist/pl_famous' } },
+    { id: 'pl_empty', name: 'Sin seguidores', owner: { id: 'spot_user_1' }, external_urls: { spotify: 'https://open.spotify.com/playlist/pl_empty' } },
+    // Playlist en la biblioteca pero NO creada por el usuario: no debe importarse
+    { id: 'pl_alien', name: 'Sigo esta playlist', owner: { id: 'otro_usuario' }, external_urls: { spotify: 'https://open.spotify.com/playlist/pl_alien' } }
   ]),
   getPlaylistFollowers: jest.fn(async (_tok, id) => (id === 'pl_famous' ? 4521 : 0))
 }));
@@ -173,6 +175,7 @@ describe('Integración Spotify', () => {
         .set('Authorization', `Bearer ${tokenFor(1, 'administrador')}`);
 
       expect(res.status).toBe(200);
+      // Solo las creadas por el usuario (2); la que solo sigue (pl_alien) se excluye
       expect(res.body.count).toBe(2);
       expect(res.body.message).toContain('importadas');
     });

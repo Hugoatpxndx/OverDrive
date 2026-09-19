@@ -136,7 +136,7 @@ const importPlaylists = async (req, res) => {
   const userId = req.user.id;
   try {
     const rows = await executeQuery(
-      'SELECT id, spotify_access_token, spotify_refresh_token FROM users WHERE id = ?',
+      'SELECT id, spotify_access_token, spotify_refresh_token, spotify_user_id FROM users WHERE id = ?',
       [userId]
     );
     if (rows.length === 0) {
@@ -150,9 +150,39 @@ const importPlaylists = async (req, res) => {
 
     const playlists = await fetchWithRefresh(user, spotify.getMyPlaylists);
 
+    // /me/playlists incluye TAMBIÉN las playlists que el usuario sigue/tiene
+    // en su biblioteca pero no creó. Solo importamos las que el propio
+    // usuario creó, comparando el owner de cada playlist con su identidad
+    // real de Spotify (/me). Si no tenemos aún la identidad guardada, se
+    // consulta aquí y se persiste.
+    let spotifyOwnerId = user.spotify_user_id || null;
+    let ownerKnown = true;
+    if (!spotifyOwnerId) {
+      try {
+        const me = await fetchWithRefresh(user, spotify.getSpotifyUser);
+        spotifyOwnerId = (me && (me.id || me.email)) || null;
+        if (spotifyOwnerId) {
+          await executeQuery(
+            'UPDATE users SET spotify_user_id = ? WHERE id = ?',
+            [spotifyOwnerId, userId]
+          );
+        }
+      } catch (meErr) {
+        console.error('No se pudo identificar al dueño de las playlists:', meErr.message);
+        ownerKnown = false;
+      }
+    }
+
+    const ownedPlaylists = playlists.filter((p) => {
+      // Si no pudimos identificar al dueño (red caída), importamos todo
+      // (comportamiento anterior) para no bloquear la importación.
+      if (!ownerKnown || !spotifyOwnerId) return true;
+      return p.owner?.id === spotifyOwnerId;
+    });
+
     // Los followers se consultan por playlist; en paralelo (con límite) para
     // no hacer N llamadas en serie. Si una falla, se conserva 0 (no bloquea).
-    const followersList = await mapWithConcurrency(playlists, 5, async (p) => {
+    const followersList = await mapWithConcurrency(ownedPlaylists, 5, async (p) => {
       const spotifyId = (p.id || '').slice(0, 80);
       try {
         const followers = Number.isInteger(p.followers?.total)
@@ -171,7 +201,7 @@ const importPlaylists = async (req, res) => {
     );
 
     let importedCount = 0;
-    for (const p of playlists) {
+    for (const p of ownedPlaylists) {
       const spotifyId = (p.id || '').slice(0, 80);
       const name = (p.name || 'Playlist sin nombre').slice(0, 200);
       const spotifyUrl = (
