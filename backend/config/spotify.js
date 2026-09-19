@@ -163,6 +163,30 @@ const addTracksToPlaylist = async (accessToken, playlistSpotifyId, trackUri) => 
   return resp.data;
 };
 
+// Obtiene los detalles de un track (incluye preview_url de 30 s y artistas).
+const getTrack = async (accessToken, trackId) => {
+  const resp = await withRetry(() =>
+    axios.get(`${API_URL}/tracks/${trackId}`, {
+      ...defaultConfig,
+      headers: { Authorization: `Bearer ${accessToken}` }
+    }), 2
+  );
+  return resp.data;
+};
+
+// Obtiene los géneros de los artistas (el track no trae géneros; Spotify solo
+// los expone a nivel de artista). Acepta hasta 50 ids separados por coma.
+const getArtists = async (accessToken, artistIds) => {
+  const resp = await withRetry(() =>
+    axios.get(`${API_URL}/artists`, {
+      ...defaultConfig,
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { ids: artistIds.join(',') }
+    }), 2
+  );
+  return resp.data.artists || [];
+};
+
 module.exports = {
   buildAuthUrl,
   exchangeCode,
@@ -170,5 +194,7 @@ module.exports = {
   getSpotifyUser,
   getMyPlaylists,
   getPlaylistFollowers,
-  addTracksToPlaylist
+  addTracksToPlaylist,
+  getTrack,
+  getArtists
 };

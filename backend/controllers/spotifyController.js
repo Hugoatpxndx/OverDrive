@@ -257,6 +257,68 @@ const getStatus = async (req, res) => {
   }
 };
 
+// GET /api/spotify/track/:trackId — detalles del track para escuchar un
+// preview de 30 s y ver sus géneros antes de aceptar una propuesta.
+// Los géneros vienen del(los) artista(s), porque la Web API no los expone
+// a nivel de track.
+const getTrackInfo = async (req, res) => {
+  const trackId = req.params.trackId || '';
+  if (!/^[a-zA-Z0-9]+$/.test(trackId)) {
+    return res.status(400).json({ error: 'ID de track inválido' });
+  }
+  try {
+    const rows = await executeQuery(
+      'SELECT id, spotify_access_token, spotify_refresh_token FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    const user = rows[0];
+
+    if (!user.spotify_access_token && !user.spotify_refresh_token) {
+      return res.status(400).json({ error: 'Primero conecta tu cuenta de Spotify' });
+    }
+
+    const track = await fetchWithRefresh(user, (tok) => spotify.getTrack(tok, trackId));
+    const artistIds = (track.artists || []).slice(0, 50).map((a) => a.id);
+    let genres = [];
+    if (artistIds.length > 0) {
+      try {
+        const artists = await fetchWithRefresh(user, (tok) =>
+          spotify.getArtists(tok, artistIds)
+        );
+        genres = [
+          ...new Set(
+            (artists || []).flatMap((a) => a.genres || [])
+          )
+        ];
+      } catch (genreErr) {
+        console.error('No se pudieron obtener los géneros del track:', genreErr.message);
+      }
+    }
+
+    return res.json({
+      id: track.id,
+      name: track.name,
+      artists: (track.artists || []).map((a) => a.name),
+      image:
+        track.album?.images?.[1]?.url ||
+        track.album?.images?.[0]?.url ||
+        null,
+      preview_url: track.preview_url || null,
+      duration_ms: track.duration_ms || null,
+      genres
+    });
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return res.status(404).json({ error: 'Track no encontrado en Spotify' });
+    }
+    console.error('Error al consultar el track:', error.message);
+    return res.status(500).json({ error: 'No se pudo consultar la canción en Spotify' });
+  }
+};
+
 // POST /api/spotify/disconnect — desvincula la cuenta de Spotify del Curador
 const disconnectSpotify = async (req, res) => {
   try {
@@ -278,6 +340,7 @@ module.exports = {
   getAuthUrl,
   spotifyCallback,
   importPlaylists,
+  getTrackInfo,
   getStatus,
   disconnectSpotify,
   fetchWithRefresh

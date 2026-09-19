@@ -1056,3 +1056,135 @@ label.field input {
     animation: none;
   }
 }
+
+/* ============================================================
+   Bandeja de entrada: preview de canción + géneros
+   ============================================================ */
+.bandeja-propuestas h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.submission-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.submission-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.submission-head a {
+  color: var(--brand-text);
+  font-weight: 700;
+  word-break: break-word;
+}
+.submission-dest {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.submission-dest strong {
+  color: var(--brand-text);
+}
+.submission-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.btn-preview {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--brand-600);
+  background: transparent;
+  color: var(--brand-600);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.btn-preview:hover:not(:disabled) {
+  background: var(--brand-600);
+  color: #fff;
+  box-shadow: 0 0 10px var(--glow-weak);
+}
+.btn-preview:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.track-preview {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand-600);
+  border-radius: 12px;
+  background: var(--surface-1);
+  animation: od-preview-in 0.25s ease-out;
+}
+.track-preview-img {
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 0 10px var(--glow-weak);
+}
+.track-preview-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.track-preview-title {
+  font-weight: 700;
+  color: var(--brand-text);
+  font-size: 0.9rem;
+}
+.genre-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.badge-genre {
+  background: rgba(168, 85, 247, 0.14);
+  color: var(--brand-600);
+  border: 1px solid var(--brand-400);
+  font-weight: 600;
+  text-transform: none;
+}
+.track-audio {
+  width: 100%;
+  max-width: 320px;
+  height: 36px;
+}
+
+@keyframes od-preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 560px) {
+  .track-preview {
+    flex-direction: column;
+  }
+  .track-preview-img {
+    width: 64px;
+    height: 64px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .track-preview {
+    animation: none;
+  }
+}

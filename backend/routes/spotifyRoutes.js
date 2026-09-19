@@ -4,6 +4,7 @@ const {
   getAuthUrl,
   spotifyCallback,
   importPlaylists,
+  getTrackInfo,
   getStatus,
   disconnectSpotify
 } = require('../controllers/spotifyController');
@@ -19,5 +20,6 @@ router.get('/auth-url', authenticate, getAuthUrl);
 router.get('/status', authenticate, getStatus);
 router.post('/disconnect', authenticate, disconnectSpotify);
 router.get('/playlists', authenticate, importPlaylists);
+router.get('/track/:trackId', authenticate, getTrackInfo);
 
 module.exports = router;

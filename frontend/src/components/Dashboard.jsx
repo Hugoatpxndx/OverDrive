@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [incoming, setIncoming] = useState([]);            // propuestas recibidas (curador)
   const [mySubmissions, setMySubmissions] = useState([]);  // propuestas enviadas (artista)
   const [users, setUsers] = useState([]);                   // listado del panel admin
+  const [previewData, setPreviewData] = useState({});       // info de tracks (preview/géneros) por propuesta
 
   // Formularios
   const [trackUrl, setTrackUrl] = useState('');
@@ -200,6 +201,41 @@ const Dashboard = () => {
 
   const pendingIncoming = incoming.filter((s) => s.status === 'pendiente').length;
 
+  // Extrae el ID del track de una URL de Spotify (open.spotify.com/track/XXXX)
+  const extractTrackId = (url) => {
+    try {
+      const match = url.match(/\/track\/([a-zA-Z0-9]+)/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Carga la info del track (preview de 30s + géneros) para escucharla antes
+  // de aceptar. Si ya está cargada, la oculta.
+  const handlePreview = async (subId) => {
+    if (previewData[subId]) {
+      setPreviewData((prev) => {
+        const next = { ...prev };
+        delete next[subId];
+        return next;
+      });
+      return;
+    }
+    const sub = incoming.find((x) => x.id === subId);
+    const trackId = sub && extractTrackId(sub.track_url);
+    if (!trackId) {
+      showError('No se pudo identificar el track de Spotify');
+      return;
+    }
+    try {
+      const res = await api.get(`/api/spotify/track/${trackId}`);
+      setPreviewData((prev) => ({ ...prev, [subId]: res.data }));
+    } catch (err) {
+      showError(err.response?.data?.error || 'No se pudo cargar la canción para escucharla');
+    }
+  };
+
   return (
     <div className="app-shell">
       <nav className="navbar">
@@ -362,6 +398,91 @@ const Dashboard = () => {
             )}
           </div>
 
+          {/* Bandeja de entrada: propuestas PRIMERO (más fácil de revisar) */}
+          <div className="bandeja-propuestas">
+            <h2>Bandeja de entrada
+              {pendingIncoming > 0 && (
+                <span className="badge badge-pendiente">{pendingIncoming} pendiente(s)</span>
+              )}
+            </h2>
+            {incoming.length > 0 ? (
+              <ul className="lista">
+                {incoming.map((s) => (
+                  <li key={s.id} className="submission-item">
+                    <div className="submission-head">
+                      <a href={s.track_url} target="_blank" rel="noopener noreferrer">{s.track_name || s.track_url}</a>
+                      <div className="submission-dest">
+                        enviada por <strong>{s.artist}</strong> → <strong>{s.playlist_name}</strong>
+                      </div>
+                    </div>
+                    <div className="submission-actions">
+                      <span className={`badge badge-${s.status}`}>{s.status}</span>
+                      {s.spotify_synced === 1 && (
+                        <span className="badge badge-sync">♫ Agregada a Spotify</span>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-preview"
+                        onClick={() => handlePreview(s.id)}
+                        disabled={s.status !== 'pendiente'}
+                      >
+                        {previewData[s.id] ? 'Ocultar' : '▶ Escuchar'}
+                      </button>
+                      {s.status === 'pendiente' && (
+                        <button
+                          className="btn-accept"
+                          onClick={() => handleAccept(s.id)}
+                        >
+                          ✔ Aceptar (+1 token)
+                        </button>
+                      )}
+                    </div>
+                    {previewData[s.id] && (
+                      <div className="track-preview">
+                        {previewData[s.id].image && (
+                          <img
+                            src={previewData[s.id].image}
+                            alt={previewData[s.id].name}
+                            className="track-preview-img"
+                          />
+                        )}
+                        <div className="track-preview-info">
+                          <div className="track-preview-title">
+                            {previewData[s.id].name} · {previewData[s.id].artists.join(', ')}
+                          </div>
+                          {previewData[s.id].genres.length > 0 && (
+                            <div className="genre-list">
+                              {previewData[s.id].genres.slice(0, 5).map((g) => (
+                                <span className="badge badge-genre" key={g}>{g}</span>
+                              ))}
+                            </div>
+                          )}
+                          {previewData[s.id].preview_url ? (
+                            <audio
+                              controls
+                              src={previewData[s.id].preview_url}
+                              className="track-audio"
+                            >
+                              Tu navegador no puede reproducir el audio.
+                            </audio>
+                          ) : (
+                            <p className="no-items">
+                              Este track no tiene preview de 30 s disponible.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="no-items">
+                Recibe propuestas de artistas y gana 1 token por cada canción que aceptes.
+              </div>
+            )}
+          </div>
+
           {myPlaylists.length > 0 ? (
             <ul className="lista">
               {myPlaylists.map((p) => (
@@ -402,37 +523,6 @@ const Dashboard = () => {
             />
             <button type="submit">Guardar playlist</button>
           </form>
-
-          <div className="bandeja-propuestas">
-            <h2>Bandeja de entrada</h2>
-            {incoming.length > 0 ? (
-              <ul className="lista">
-                {incoming.map((s) => (
-                  <li key={s.id}>
-                    <a href={s.track_url} target="_blank" rel="noopener noreferrer">{s.track_name || s.track_url}</a>
-                    {' por '}{s.artist}
-                    {' → '}{s.playlist_name}
-                    <span className={`badge badge-${s.status}`}>{s.status}</span>
-                    {s.spotify_synced === 1 && (
-                      <span className="badge badge-sync">♫ Agregada a Spotify</span>
-                    )}
-                    {s.status === 'pendiente' && (
-                      <button
-                        className="btn-accept"
-                        onClick={() => handleAccept(s.id)}
-                      >
-                        ✔ Aceptar (+1 token)
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="no-items">
-                Recibe propuestas de artistas y gana 1 token por cada canción que aceptes.
-              </div>
-            )}
-          </div>
         </section>
       )}
 

@@ -64,7 +64,26 @@ jest.mock('../config/spotify', () => ({
     // Playlist en la biblioteca pero NO creada por el usuario: no debe importarse
     { id: 'pl_alien', name: 'Sigo esta playlist', owner: { id: 'otro_usuario' }, external_urls: { spotify: 'https://open.spotify.com/playlist/pl_alien' } }
   ]),
-  getPlaylistFollowers: jest.fn(async (_tok, id) => (id === 'pl_famous' ? 4521 : 0))
+  getPlaylistFollowers: jest.fn(async (_tok, id) => (id === 'pl_famous' ? 4521 : 0)),
+  // Detalles de track para el preview (30 s) y géneros del artista
+  getTrack: jest.fn(async (_tok, trackId) => {
+    if (trackId === 'inexistente') {
+      const err = new Error('Not found');
+      err.response = { status: 404 };
+      throw err;
+    }
+    return {
+      id: trackId,
+      name: 'Copacabana',
+      artists: [{ id: 'art1', name: 'Artista Uno' }],
+      album: { images: [{ url: 'https://img/art.jpg' }] },
+      preview_url: 'https://p.scdn.co/mp3-preview/abc123',
+      duration_ms: 120000
+    };
+  }),
+  getArtists: jest.fn(async () => [
+    { id: 'art1', name: 'Artista Uno', genres: ['latin pop', 'cumbia'] }
+  ])
 }));
 
 const app = require('../server');
@@ -207,6 +226,37 @@ describe('Integración Spotify', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.connected).toBe(false);
+    });
+  });
+
+  describe('GET /api/spotify/track/:trackId', () => {
+    test('Debe devolver preview y géneros del track (200)', async () => {
+      const res = await request(app)
+        .get('/api/spotify/track/abc123def456')
+        .set('Authorization', `Bearer ${tokenFor(1, 'administrador')}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.name).toBe('Copacabana');
+      expect(res.body.preview_url).toBe('https://p.scdn.co/mp3-preview/abc123');
+      expect(res.body.artists).toEqual(['Artista Uno']);
+      expect(res.body.genres).toEqual(['latin pop', 'cumbia']);
+    });
+
+    test('Debe responder 400 si el usuario no conectó Spotify', async () => {
+      const res = await request(app)
+        .get('/api/spotify/track/abc123def456')
+        .set('Authorization', `Bearer ${tokenFor(2, 'usuario')}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('conecta');
+    });
+
+    test('Debe responder 404 si el track no existe en Spotify', async () => {
+      const res = await request(app)
+        .get('/api/spotify/track/inexistente')
+        .set('Authorization', `Bearer ${tokenFor(1, 'administrador')}`);
+
+      expect(res.status).toBe(404);
     });
   });
 
