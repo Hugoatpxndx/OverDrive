@@ -31,14 +31,19 @@ const Dashboard = () => {
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
 
-  // Popup de confirmación (toast): { type: 'success'|'error', text }
+  // Popup de confirmación: { title, text, type: 'success'|'error' }
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
-  const showToast = (text, type = 'success') => {
+  const closeToast = () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ text, type });
-    toastTimer.current = setTimeout(() => setToast(null), 4500);
+    setToast(null);
+  };
+
+  const showToast = (title, text, type = 'success') => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ title, text, type });
+    toastTimer.current = setTimeout(closeToast, 5000);
   };
 
   useEffect(() => {
@@ -53,12 +58,12 @@ const Dashboard = () => {
   const showError = (msg) => {
     setError(msg);
     setMessage('');
-    showToast(msg, 'error');
+    showToast('Algo salió mal', msg, 'error');
   };
   const showMessage = (msg) => {
     setMessage(msg);
     setError('');
-    showToast(msg, 'success');
+    showToast('¡Listo!', msg, 'success');
   };
 
   // ---------- Carga de datos ----------
@@ -119,11 +124,19 @@ const Dashboard = () => {
         trackUrl,
         playlistId: parseInt(selectedPlaylist, 10)
       });
-      showMessage(`${res.data.message} (te quedan ${res.data.tokensRestantes} tokens)`);
+      showToast(
+        '¡Canción enviada!',
+        `${res.data.message} Te quedan ${res.data.tokensRestantes} tokens.`,
+        'success'
+      );
       setTrackUrl('');
       loadAll();
     } catch (err) {
-      showError(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Error al enviar');
+      showToast(
+        'No se envió',
+        err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Error al enviar',
+        'error'
+      );
     }
   };
 
@@ -192,10 +205,18 @@ const Dashboard = () => {
     setMessage('');
     try {
       const res = await api.post(`/api/submissions/${id}/accept`);
-      showMessage(`${res.data.message}`);
+      showToast(
+        res.data.synced ? '¡Aceptada y agregada a Spotify!' : '¡Aceptada! (no sincronizada)',
+        res.data.message,
+        'success'
+      );
       loadAll();
     } catch (err) {
-      showError(err.response?.data?.error || 'Error al aceptar');
+      showToast(
+        'No se pudo aceptar',
+        err.response?.data?.error || 'Error al aceptar',
+        'error'
+      );
     }
   };
 
@@ -574,13 +595,22 @@ const Dashboard = () => {
       </main>
 
       {toast && (
-        <div className={`toast toast-${toast.type}`} role="status" aria-live="polite">
-          <span className="toast-icon">{toast.type === 'success' ? '✓' : '⚠'}</span>
-          <div className="toast-body">
-            <strong>{toast.type === 'success' ? '¡Listo!' : 'Error'}</strong>
+        <div className="confirm-overlay" onClick={closeToast} role="presentation">
+          <div
+            className={`confirm-card confirm-${toast.type}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="confirm-icon">{toast.type === 'success' ? '✓' : '✕'}</span>
+            <span className="confirm-timer" />
+            <h3 id="confirm-title">{toast.title}</h3>
             <p>{toast.text}</p>
+            <button type="button" className="confirm-btn" onClick={closeToast}>
+              Entendido
+            </button>
           </div>
-          <span className="toast-timer" />
         </div>
       )}
 
