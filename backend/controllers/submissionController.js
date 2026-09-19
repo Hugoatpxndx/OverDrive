@@ -218,9 +218,7 @@ const acceptSubmission = async (req, res) => {
 const listMySubmissions = async (req, res) => {
   try {
     const userId = req.user.id;
-    const [rows] = await (
-      await getConnection()
-    ).execute(
+    const rows = await executeQuery(
       `SELECT s.id, s.track_url, s.track_name, s.status, s.created_at,
               p.name AS playlist_name
        FROM submissions s

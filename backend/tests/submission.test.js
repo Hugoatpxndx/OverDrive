@@ -26,11 +26,7 @@ const dbState = {
 };
 
 jest.mock('../config/db', () => {
-  return {
-    executeQuery: jest.fn(async () => []),
-    getConnection: jest.fn(async () => {
-      return {
-        execute: jest.fn(async (sql, params) => {
+  const runSql = jest.fn(async (sql, params) => {
           if (dbState.failNextError) {
             throw new Error('Error interno de BD simulado');
           }
@@ -127,10 +123,17 @@ jest.mock('../config/db', () => {
             return [[]];
           }
           return [[]];
-        }),
-        release: jest.fn()
-      };
-    }),
+  });
+
+  return {
+    executeQuery: async (sql, params) => {
+      const [rows] = await runSql(sql, params);
+      return rows;
+    },
+    getConnection: jest.fn(async () => ({
+      execute: runSql,
+      release: jest.fn()
+    })),
     pool: { getConnection: jest.fn() }
   };
 });
