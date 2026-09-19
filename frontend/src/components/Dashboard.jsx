@@ -487,9 +487,20 @@ const Dashboard = () => {
                               Tu navegador no puede reproducir el audio.
                             </audio>
                           ) : (
-                            <p className="no-items">
-                              Este track no tiene preview de 30 s disponible.
-                            </p>
+                            <div>
+                              <p className="no-items">
+                                Este track no tiene preview de 30 s disponible en la API de
+                                Spotify. Ábrelo para escucharlo.
+                              </p>
+                              <a
+                                className="btn-open-spotify"
+                                href={s.track_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                ▶ Abrir en Spotify
+                              </a>
+                            </div>
                           )}
                         </div>
                       </div>
