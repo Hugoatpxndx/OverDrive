@@ -150,7 +150,7 @@ const submitSong = async (req, res) => {
   }
 };
 
-// Aceptar propuesta (Modo Curador) - Gana 1 token
+// Aceptar propuesta (Modo Curador) - El artista autor gana 1 token
 const acceptSubmission = async (req, res) => {
   const connection = await getConnection();
   try {
@@ -237,10 +237,12 @@ const acceptSubmission = async (req, res) => {
       return res.status(400).json({ error: 'La propuesta ya fue procesada' });
     }
 
-    // Otorgar 1 token al curador, respetando el tope máximo de 10
+    // Otorgar 1 token al artista autor de la propuesta aceptada,
+    // respetando el tope máximo de 10. Así el artista recupera el token
+    // que gastó al enviar y la aprobación es su recompensa.
     const [tokenResult] = await connection.execute(
       'UPDATE users SET tokens = LEAST(tokens + 1, 10) WHERE id = ?',
-      [curatorId]
+      [submission.artist_id]
     );
 
     if (tokenResult.affectedRows === 0) {
@@ -248,8 +250,8 @@ const acceptSubmission = async (req, res) => {
     }
 
     const message = synced
-      ? 'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token)'
-      : 'Propuesta aceptada: +1 token otorgado. La canción NO se agregó a Spotify — desconecta y vuelve a conectar tu cuenta para conceder permisos de escritura.';
+      ? 'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token para el artista)'
+      : 'Propuesta aceptada: +1 token para el artista. La canción NO se agregó a Spotify — desconecta y vuelve a conectar tu cuenta para conceder permisos de escritura.';
 
     return res.status(200).json({
       message,

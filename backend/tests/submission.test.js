@@ -67,6 +67,7 @@ jest.mock('../config/db', () => {
             return [[{
               id: sub.id,
               status: sub.status,
+              artist_id: sub.artist_id,
               playlist_id: sub.playlist_id,
               track_url: sub.track_url,
               playlist_owner: dbState.playlists.find((p) => p.id === sub.playlist_id)?.user_id,
@@ -363,9 +364,11 @@ describe('Aceptar Propuestas (Modo Curador)', () => {
     expect(response.status).toBe(200);
     expect(response.body.synced).toBe(true);
     expect(response.body.message).toBe(
-      'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token)'
+      'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token para el artista)'
     );
-    expect(dbState.users.find((u) => u.id === 2).tokens).toBe(6);
+    // El +1 va al artista autor (id 3), no al curador (id 2)
+    expect(dbState.users.find((u) => u.id === 3).tokens).toBe(2);
+    expect(dbState.users.find((u) => u.id === 2).tokens).toBe(5);
 
     // El sync real llamó a la API de Spotify con la playlist y el track correctos
     expect(addTracksToPlaylist).toHaveBeenCalledWith(

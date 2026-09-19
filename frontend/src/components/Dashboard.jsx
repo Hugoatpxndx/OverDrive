@@ -337,8 +337,8 @@ const Dashboard = () => {
         </div>
         <p className="modo-desc">
           {modo === 'artista'
-            ? 'Estás en modo Artista: gasta 1 token para enviar tu canción a una playlist.'
-            : 'Estás en modo Curador: gana 1 token al aceptar propuestas.'}
+            ? 'Estás en modo Artista: gasta 1 token para enviar tu canción a una playlist. Si la aceptan, recuperas tu token.'
+            : 'Estás en modo Curador: acepta propuestas y el artista autor gana 1 token.'}
         </p>
       </section>
 
@@ -454,7 +454,7 @@ const Dashboard = () => {
                           className="btn-accept"
                           onClick={() => handleAccept(s.id)}
                         >
-                          ✔ Aceptar (+1 token)
+                          ✔ Aceptar (artista +1 token)
                         </button>
                       )}
                     </div>
@@ -510,7 +510,7 @@ const Dashboard = () => {
               </ul>
             ) : (
               <div className="no-items">
-                Recibe propuestas de artistas y gana 1 token por cada canción que aceptes.
+                Recibe propuestas de artistas y al aceptarlas, el artista autor recupera su token.
               </div>
             )}
           </div>
