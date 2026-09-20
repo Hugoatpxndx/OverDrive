@@ -692,6 +692,10 @@ label.field input {
 .btn-accept:hover {
   background: #15803d;
 }
+.btn-accept:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .btn-logout {
   width: auto;
   padding: 0.55rem 1.05rem;

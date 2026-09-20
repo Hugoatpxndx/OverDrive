@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [mySubmissions, setMySubmissions] = useState([]);  // propuestas enviadas (artista)
   const [users, setUsers] = useState([]);                   // listado del panel admin
   const [previewData, setPreviewData] = useState({});       // info de tracks (preview/géneros) por propuesta
+  const [acceptingId, setAcceptingId] = useState(null);     // propuesta cuyo proceso de aceptación está en curso
 
   // Formularios
   const [trackUrl, setTrackUrl] = useState('');
@@ -201,8 +202,10 @@ const Dashboard = () => {
 
   // ---------- Modo Curador: aceptar propuesta ----------
   const handleAccept = async (id) => {
+    if (acceptingId) return; // evita doble clic / aceptaciones simultáneas
     setError('');
     setMessage('');
+    setAcceptingId(id);
     try {
       const res = await api.post(`/api/submissions/${id}/accept`);
       showToast(
@@ -217,6 +220,8 @@ const Dashboard = () => {
         err.response?.data?.error || 'Error al aceptar',
         'error'
       );
+    } finally {
+      setAcceptingId(null);
     }
   };
 
@@ -452,9 +457,10 @@ const Dashboard = () => {
                       {s.status === 'pendiente' && (
                         <button
                           className="btn-accept"
+                          disabled={acceptingId !== null}
                           onClick={() => handleAccept(s.id)}
                         >
-                          ✔ Aceptar (artista +1 token)
+                          {acceptingId === s.id ? 'Aceptando…' : '✔ Aceptar (artista +1 token)'}
                         </button>
                       )}
                     </div>
