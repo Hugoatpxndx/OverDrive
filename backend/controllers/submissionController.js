@@ -243,11 +243,21 @@ const acceptSubmission = async (req, res) => {
       return res.status(400).json({ error: 'La propuesta ya fue procesada' });
     }
 
-    // El token ya se descontó al enviar; al aceptar se CONSOME (el artista
-    // pagó por estar en la playlist). No hay reembolso ni recompensa extra.
+    // El artista ya pagó 1 token al enviar; al aceptar ese token pasa al
+    // curador como pago por publicar su canción (tope 10 de la Wallet Cap).
+    // Si se rechaza en su lugar, el token se devuelve al artista.
+    const [tokenResult] = await connection.execute(
+      'UPDATE users SET tokens = LEAST(tokens + 1, 10) WHERE id = ?',
+      [curatorId]
+    );
+
+    if (tokenResult.affectedRows === 0) {
+      return res.status(500).json({ error: 'Error al actualizar tokens' });
+    }
+
     const message = synced
-      ? 'Propuesta aceptada: canción agregada a tu playlist de Spotify'
-      : 'Propuesta aceptada: canción NO se agregó a Spotify — desconecta y vuelve a conectar tu cuenta para conceder permisos de escritura.';
+      ? 'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token para el curador)'
+      : 'Propuesta aceptada: +1 token para el curador. La canción NO se agregó a Spotify — desconecta y vuelve a conectar tu cuenta para conceder permisos de escritura.';
 
     return res.status(200).json({
       message,

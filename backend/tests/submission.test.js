@@ -353,7 +353,7 @@ describe('Aceptar Propuestas (Modo Curador)', () => {
     dbState.nextSubId = 2;
   });
 
-  test('El curador dueño debe aceptar la propuesta y sincronizarla a Spotify (el token se consume)', async () => {
+  test('El curador dueño acepta la propuesta, gana 1 token y la sincroniza a Spotify', async () => {
     const { addTracksToPlaylist } = require('../config/spotify');
 
     const token = createToken(2, 'usuario');
@@ -364,11 +364,11 @@ describe('Aceptar Propuestas (Modo Curador)', () => {
     expect(response.status).toBe(200);
     expect(response.body.synced).toBe(true);
     expect(response.body.message).toBe(
-      'Propuesta aceptada: canción agregada a tu playlist de Spotify'
+      'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token para el curador)'
     );
-    // El token ya se descontó al enviar; aceptar lo CONSUME, no devuelve nada
+    // El token del envío pasa al curador (id 2); el artista (id 3) no recibe nada
+    expect(dbState.users.find((u) => u.id === 2).tokens).toBe(6);
     expect(dbState.users.find((u) => u.id === 3).tokens).toBe(1);
-    expect(dbState.users.find((u) => u.id === 2).tokens).toBe(5);
 
     // El sync real llamó a la API de Spotify con la playlist y el track correctos
     expect(addTracksToPlaylist).toHaveBeenCalledWith(

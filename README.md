@@ -3,7 +3,7 @@
 Plataforma web de **economía circular para músicos independientes**. Los usuarios intercambian espacios en playlists de Spotify usando **Tokens de Visibilidad**.
 
 - **Modo Artista**: Gasta 1 token para enviar el enlace de su canción.
-- **Modo Curador**: Decide el destino de la propuesta: al aceptar se **consumen** los tokens del artista (entra a la playlist); al rechazar se le **devuelve** el token.
+- **Modo Curador**: Al aceptar gana **1 token** del artista; al rechazar se lo **devuelve**.
 - **Reglas**: Bono inicial de 3 tokens. Límite de 10 tokens (Wallet Cap).
 
 ---
@@ -152,8 +152,8 @@ Flujo:
 2. **Artista**: con otro usuario OverDrive, entra a **Modo Artista** y envía el enlace de un
    track de Spotify a una playlist de la cuenta curadora (cuesta 1 token).
 3. **Decidir como curador**: presiona **"Aceptar"** y la canción se agrega **de verdad** a la
-   playlist (se **consume** el token que el artista gastó al enviar) — o presiona **"Rechazar"**
-   y el artista **recupera su token** (reembolso de envío, tope 10).
+   playlist: el token que el artista gastó al enviar **va a tu cuenta** (+1, tope 10). O presiona
+   **"Rechazar"** y el artista **recupera su token** (reembolso de envío).
 
 > Los pares de contraseñas de estas cuentas (correo y Spotify) y el resto de accesos
 > locales se documentan en `docs/credenciales-prueba.md`, que por seguridad **se
@@ -256,7 +256,7 @@ docker run --rm --network host -v "$PWD/docs:/zap/wrk:rw" \
 | GET | `/api/health` | Estado del servidor | Público |
 | POST | `/api/submissions` | Enviar canción (cuesta 1 token) | Autenticado |
 | GET | `/api/submissions` | Listar mis propuestas | Autenticado |
-| POST | `/api/submissions/:id/accept` | Aceptar propuesta (se consume el token del artista) | Curador |
+| POST | `/api/submissions/:id/accept` | Aceptar propuesta (+1 token para el curador) | Curador |
 | POST | `/api/submissions/:id/reject` | Rechazar propuesta (devuelve el token al artista) | Curador |
 | GET | `/api/auth/me` | Datos actuales del usuario (tokens frescos) | Autenticado |
 | GET | `/api/admin/users` | Listar usuarios (sin hashes) | Administrador |

@@ -211,7 +211,7 @@ const Dashboard = () => {
     try {
       const res = await api.post(`/api/submissions/${id}/accept`);
       showToast(
-        res.data.synced ? '¡Aceptada y agregada a Spotify!' : '¡Aceptada! (no sincronizada)',
+        res.data.synced ? '¡Aceptada! Se agregó a Spotify (+1 token para ti)' : '¡Aceptada! (+1 token para ti)',
         res.data.message,
         'success'
       );
@@ -366,8 +366,8 @@ const Dashboard = () => {
         </div>
         <p className="modo-desc">
           {modo === 'artista'
-            ? 'Estás en modo Artista: gasta 1 token para enviar tu canción a una playlist. Si la aceptan, se consume; si la rechazan, recuperas tu token.'
-            : 'Estás en modo Curador: acepta propuestas (se consume el token del artista) o recházalas para devolverle su token.'}
+            ? 'Estás en modo Artista: gasta 1 token para enviar tu canción. Si la rechazan, lo recuperas; si la aceptan, el token pasa al curador.'
+            : 'Estás en modo Curador: al aceptar te llevas 1 token del artista; al rechazar, se lo devuelves.'}
         </p>
       </section>
 
@@ -485,7 +485,7 @@ const Dashboard = () => {
                             disabled={acceptingId !== null || rejectingId !== null}
                             onClick={() => handleAccept(s.id)}
                           >
-                            {acceptingId === s.id ? 'Aceptando…' : '✔ Aceptar'}
+                            {acceptingId === s.id ? 'Aceptando…' : '✔ Aceptar (+1 token)'}
                           </button>
                           <button
                             className="btn-reject"
@@ -544,7 +544,7 @@ const Dashboard = () => {
               </ul>
             ) : (
               <div className="no-items">
-                Recibe propuestas de artistas: si aceptas se consume su token, si rechazas se lo devuelves.
+                Recibe propuestas de artistas: al aceptar ganas su token (+1), al rechazar se lo devuelves.
               </div>
             )}
           </div>
