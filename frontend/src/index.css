@@ -1239,3 +1239,242 @@ label.field input {
     animation: none;
   }
 }
+
+/* ============================================================
+   Responsive fino (móvil)
+   ============================================================ */
+@media (max-width: 640px) {
+  .user-meta {
+    display: none;
+  }
+  .page-head h1 {
+    font-size: 1.35rem;
+  }
+  .dashboard {
+    padding: 0 0.85rem;
+    margin-top: 1.1rem;
+  }
+  .navbar {
+    padding: 0.7rem 0.9rem;
+  }
+  .modo-selector,
+  .enviar-cancion,
+  .bandeja-entrada,
+  .admin-panel,
+  .card {
+    padding: 1.1rem;
+  }
+}
+@media (max-width: 420px) {
+  .auth-card {
+    border-radius: 16px;
+  }
+  .auth-form,
+  .auth-brand {
+    padding: 1.6rem 1.25rem;
+  }
+  .stat-card {
+    padding: 0.9rem 1rem;
+  }
+  .btn-accept {
+    width: 100%;
+    margin-left: 0;
+  }
+  .submission-actions {
+    align-items: stretch;
+  }
+  .spotify-connect button,
+  .spotify-connect .btn-danger {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ============================================================
+   Animaciones extra (entrada + micro-interacciones)
+   ============================================================ */
+@keyframes od-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes od-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes od-nav-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes od-flow {
+  from {
+    background-position: -220% 0;
+  }
+  to {
+    background-position: 220% 0;
+  }
+}
+@keyframes od-sheen {
+  0%,
+  55% {
+    left: -80%;
+  }
+  85%,
+  100% {
+    left: 130%;
+  }
+}
+@keyframes od-drift-a {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(9vmax, 6vmax) scale(1.18);
+  }
+}
+@keyframes od-drift-b {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(-8vmax, -5vmax) scale(1.12);
+  }
+}
+
+/* Entrada del formulario de autenticación */
+.auth-card {
+  animation: od-rise 0.5s ease-out both;
+}
+
+/* Navbar: entrada + línea de energía animada (oscuro) */
+.navbar {
+  animation: od-nav-in 0.45s ease-out both;
+}
+[data-theme='dark'] .navbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  background-size: 220% 100%;
+  animation: od-flow 7s linear infinite;
+  pointer-events: none;
+}
+
+/* Dashboard: entrada escalonada (solo opacidad para no romper el hover) */
+.dashboard > * {
+  animation: od-fade 0.5s ease-out both;
+}
+.dashboard > :nth-child(1) { animation-delay: 0.04s; }
+.dashboard > :nth-child(2) { animation-delay: 0.09s; }
+.dashboard > :nth-child(3) { animation-delay: 0.14s; }
+.dashboard > :nth-child(4) { animation-delay: 0.19s; }
+.dashboard > :nth-child(5) { animation-delay: 0.24s; }
+.dashboard > :nth-child(6) { animation-delay: 0.29s; }
+.dashboard > :nth-child(7) { animation-delay: 0.34s; }
+
+/* Micro-interacción: botón presionado */
+button:active:not(:disabled),
+.btn-accept:active:not(:disabled),
+.btn-preview:active:not(:disabled),
+.confirm-btn:active:not(:disabled) {
+  transform: scale(0.965);
+}
+
+/* Destello tipo "sheen" en botones primarios de gradiente */
+.enviar-cancion button,
+.auth-form button[type='submit'] {
+  position: relative;
+  overflow: hidden;
+}
+.enviar-cancion button::after,
+.auth-form button[type='submit']::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  animation: od-sheen 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Modo activo: pop suave al alternar */
+.modo-btn.active {
+  animation: od-card-in 0.28s ease-out;
+}
+
+/* Orbes ambientales que derivan (oscuro) */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(72px);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-theme='dark'] body::before,
+[data-theme='dark'] body::after {
+  opacity: 1;
+}
+[data-theme='dark'] body::before {
+  width: 46vmax;
+  height: 46vmax;
+  top: -12vmax;
+  left: -10vmax;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.16), transparent 65%);
+  animation: od-drift-a 24s ease-in-out infinite alternate;
+}
+[data-theme='dark'] body::after {
+  width: 42vmax;
+  height: 42vmax;
+  bottom: -14vmax;
+  right: -13vmax;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.18), transparent 65%);
+  animation: od-drift-b 28s ease-in-out infinite alternate;
+}
+
+/* Valor de estadísticas: resplandor estático */
+[data-theme='dark'] .stat-value {
+  text-shadow: 0 0 18px rgba(0, 229, 255, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .navbar,
+  .dashboard > *,
+  .modo-btn.active,
+  .enviar-cancion button::after,
+  .auth-form button[type='submit']::after,
+  body::before,
+  body::after {
+    animation: none !important;
+  }
+  button:active:not(:disabled),
+  .btn-accept:active:not(:disabled),
+  .btn-preview:active:not(:disabled),
+  .confirm-btn:active:not(:disabled) {
+    transform: none;
+  }
+}
