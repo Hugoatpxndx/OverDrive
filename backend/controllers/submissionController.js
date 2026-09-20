@@ -139,7 +139,13 @@ const submitSong = async (req, res) => {
     console.error('Error en envío de canción:', error.code, error.sqlMessage);
     // Manejo específico para violación de constraint (duplicado o CHECK tokens)
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ error: 'Esta canción ya fue enviada a esta playlist' });
+      // El envío duplicado fue rechazado, pero el token ya se descontó antes
+      // del INSERT: lo reembolsamos para que el artista no pierda su token.
+      await connection.execute(
+        'UPDATE users SET tokens = LEAST(tokens + 1, 10) WHERE id = ?',
+        [artistId]
+      );
+      return res.status(409).json({ error: 'Esta canción ya fue enviada a esta playlist (token reembolsado)' });
     }
     if (error.code === 'ER_CHECK_CONSTRAINT_VIOLATED') {
       return res.status(400).json({ error: 'Límite de tokens alcanzado (máximo 10)' });
