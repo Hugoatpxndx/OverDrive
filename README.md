@@ -167,7 +167,7 @@ cd backend
 npm test
 ```
 
-Actualmente hay **38 tests** cubriendo autenticación, control de roles, envío/aceptación de canciones (tokens), y rutas de administración. Cobertura real verificada: **statements 82%, lines 83%, functions 91%** (supera el 80% requerido). Los umbrales se definen en `backend/jest.config.js`.
+Actualmente hay **70 tests** cubriendo autenticación, control de roles, envío/aceptación de canciones (tokens), playlists, integración con Spotify y rutas de administración. Cobertura real verificada: **statements 84%, branches 69%, functions 95%** (supera los umbrales: ≥80% statements/lines/functions y ≥65% branches). Los umbrales se definen en `backend/jest.config.js`.
 
 ---
 
