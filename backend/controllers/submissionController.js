@@ -143,7 +143,7 @@ const submitSong = async (req, res) => {
       // del INSERT: lo reembolsamos para que el artista no pierda su token.
       await connection.execute(
         'UPDATE users SET tokens = LEAST(tokens + 1, 10) WHERE id = ?',
-        [artistId]
+        [req.user.id]
       );
       return res.status(409).json({ error: 'Esta canción ya fue enviada a esta playlist (token reembolsado)' });
     }
