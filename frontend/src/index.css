@@ -696,6 +696,31 @@ label.field input {
   opacity: 0.6;
   cursor: not-allowed;
 }
+.btn-reject {
+  background: #b91c1c;
+  color: #fff;
+  padding: 0.5rem 0.85rem;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+.btn-reject:hover {
+  background: #991b1b;
+}
+.btn-reject:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.accept-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
 .btn-logout {
   width: auto;
   padding: 0.55rem 1.05rem;

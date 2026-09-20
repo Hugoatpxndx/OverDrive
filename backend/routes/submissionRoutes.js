@@ -4,6 +4,7 @@ const { authenticate } = require('../middlewares/auth');
 const {
   submitSong,
   acceptSubmission,
+  rejectSubmission,
   listMySubmissions,
   listCuratorSubmissions
 } = require('../controllers/submissionController');
@@ -65,6 +66,22 @@ router.post(
     next();
   },
   acceptSubmission
+);
+
+// POST /api/submissions/:id/reject - Rechazar propuesta y devolver el token (Modo Curador)
+router.post(
+  '/:id/reject',
+  [
+    param('id').isInt({ min: 1 }).withMessage('ID de propuesta inválido')
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  },
+  rejectSubmission
 );
 
 module.exports = router;

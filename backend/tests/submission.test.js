@@ -58,8 +58,8 @@ jest.mock('../config/db', () => {
             }
             return [{ affectedRows: 0 }];
           }
-          // Query JOIN para aceptar propuesta (submissions + playlists)
-          if (sql.includes('p.spotify_id AS playlist_spotify_id')) {
+          // Query JOIN para aceptar/rechazar propuesta (submissions + playlists)
+          if (sql.includes('JOIN playlists p ON p.id = s.playlist_id') && sql.includes('WHERE s.id')) {
             const sub = dbState.submissions.find((s) => s.id === params[0]);
             if (!sub) {
               return [[]];
@@ -82,11 +82,11 @@ jest.mock('../config/db', () => {
               spotify_refresh_token: 'rf_curator'
             }]];
           }
-          // UPDATE de submissions (marcar aprobada)
+          // UPDATE de submissions (marcar aprobada/rechazada)
           if (sql.includes('UPDATE submissions SET status')) {
             const sub = dbState.submissions.find((s) => s.id === params[2]);
             if (sub && sub.status === 'pendiente') {
-              sub.status = 'aprobada';
+              sub.status = params[0];
               return [{ affectedRows: 1 }];
             }
             return [{ affectedRows: 0 }];
@@ -353,7 +353,7 @@ describe('Aceptar Propuestas (Modo Curador)', () => {
     dbState.nextSubId = 2;
   });
 
-  test('El curador dueño debe aceptar la propuesta, ganar 1 token y sincronizarla a Spotify', async () => {
+  test('El curador dueño debe aceptar la propuesta y sincronizarla a Spotify (el token se consume)', async () => {
     const { addTracksToPlaylist } = require('../config/spotify');
 
     const token = createToken(2, 'usuario');
@@ -364,10 +364,10 @@ describe('Aceptar Propuestas (Modo Curador)', () => {
     expect(response.status).toBe(200);
     expect(response.body.synced).toBe(true);
     expect(response.body.message).toBe(
-      'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token para el artista)'
+      'Propuesta aceptada: canción agregada a tu playlist de Spotify'
     );
-    // El +1 va al artista autor (id 3), no al curador (id 2)
-    expect(dbState.users.find((u) => u.id === 3).tokens).toBe(2);
+    // El token ya se descontó al enviar; aceptar lo CONSUME, no devuelve nada
+    expect(dbState.users.find((u) => u.id === 3).tokens).toBe(1);
     expect(dbState.users.find((u) => u.id === 2).tokens).toBe(5);
 
     // El sync real llamó a la API de Spotify con la playlist y el track correctos
@@ -422,6 +422,100 @@ describe('Aceptar Propuestas (Modo Curador)', () => {
 
     expect(second.status).toBe(400);
     expect(second.body.error).toContain('ya fue procesada');
+  });
+});
+
+describe('Rechazar Propuestas (Modo Curador)', () => {
+  beforeEach(async () => {
+    // Resetear estado
+    dbState.users = [
+      { id: 1, username: 'admin', tokens: 10, role: 'administrador' },
+      { id: 2, username: 'curator1', tokens: 5, role: 'usuario' },
+      { id: 3, username: 'artist1', tokens: 1, role: 'usuario' },
+      { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario' }
+    ];
+    dbState.playlists = [
+      { id: 1, user_id: 2, spotify_id: 'playlistA', name: 'Vibraciones', followers: 1200 }
+    ];
+    dbState.submissions = [
+      {
+        id: 1,
+        artist_id: 3,
+        playlist_id: 1,
+        track_url: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+        track_name: 'Mi canción',
+        status: 'pendiente'
+      }
+    ];
+    dbState.nextSubId = 2;
+  });
+
+  test('El curador dueño rechaza la propuesta y se devuelve 1 token al artista', async () => {
+    const token = createToken(2, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/1/reject')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toContain('devolvió 1 token al artista');
+    // El artista (id 3) recupera el token que gastó al enviar
+    expect(dbState.users.find((u) => u.id === 3).tokens).toBe(2);
+    // El curador (id 2) no pierde nada
+    expect(dbState.users.find((u) => u.id === 2).tokens).toBe(5);
+    expect(dbState.submissions.find((s) => s.id === 1).status).toBe('rechazada');
+  });
+
+  test('Debe 403 si quien rechaza no es el dueño de la playlist', async () => {
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/1/reject')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
+  });
+
+  test('Debe rechazar si la propuesta no existe (404)', async () => {
+    const token = createToken(2, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/999/reject')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(404);
+  });
+
+  test('Debe rechazar con ID inválido (400)', async () => {
+    const token = createToken(2, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/abc/reject')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(400);
+  });
+
+  test('Debe rechazar rechazar la misma propuesta dos veces (400) - ya procesada', async () => {
+    const token = createToken(2, 'usuario');
+
+    const first = await request(app)
+      .post('/api/submissions/1/reject')
+      .set('Authorization', `Bearer ${token}`);
+    expect(first.status).toBe(200);
+
+    const second = await request(app)
+      .post('/api/submissions/1/reject')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(second.status).toBe(400);
+    expect(second.body.error).toContain('ya fue procesada');
+  });
+
+  test('Debe 500 si falla la base de datos al rechazar', async () => {
+    dbState.failNextError = true;
+    const token = createToken(2, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/1/reject')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(500);
   });
 });
 

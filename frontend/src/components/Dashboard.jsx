@@ -16,6 +16,7 @@ const Dashboard = () => {
   const [users, setUsers] = useState([]);                   // listado del panel admin
   const [previewData, setPreviewData] = useState({});       // info de tracks (preview/géneros) por propuesta
   const [acceptingId, setAcceptingId] = useState(null);     // propuesta cuyo proceso de aceptación está en curso
+  const [rejectingId, setRejectingId] = useState(null);     // propuesta cuyo proceso de rechazo está en curso
 
   // Formularios
   const [trackUrl, setTrackUrl] = useState('');
@@ -226,6 +227,27 @@ const Dashboard = () => {
     }
   };
 
+  // ---------- Modo Curador: rechazar propuesta (devuelve el token al artista) ----------
+  const handleReject = async (id) => {
+    if (rejectingId) return; // evita doble clic / rechazos simultáneos
+    setError('');
+    setMessage('');
+    setRejectingId(id);
+    try {
+      const res = await api.post(`/api/submissions/${id}/reject`);
+      showToast('Propuesta rechazada', res.data.message, 'success');
+      loadAll();
+    } catch (err) {
+      showToast(
+        'No se pudo rechazar',
+        err.response?.data?.error || 'Error al rechazar',
+        'error'
+      );
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
   const pendingIncoming = incoming.filter((s) => s.status === 'pendiente').length;
 
   // Extrae el ID del track de una URL de Spotify (open.spotify.com/track/XXXX)
@@ -343,8 +365,8 @@ const Dashboard = () => {
         </div>
         <p className="modo-desc">
           {modo === 'artista'
-            ? 'Estás en modo Artista: gasta 1 token para enviar tu canción a una playlist. Si la aceptan, recuperas tu token.'
-            : 'Estás en modo Curador: acepta propuestas y el artista autor gana 1 token.'}
+            ? 'Estás en modo Artista: gasta 1 token para enviar tu canción a una playlist. Si la aceptan, se consume; si la rechazan, recuperas tu token.'
+            : 'Estás en modo Curador: acepta propuestas (se consume el token del artista) o recházalas para devolverle su token.'}
         </p>
       </section>
 
@@ -456,13 +478,22 @@ const Dashboard = () => {
                         {previewData[s.id] ? 'Ocultar' : '▶ Escuchar'}
                       </button>
                       {s.status === 'pendiente' && (
-                        <button
-                          className="btn-accept"
-                          disabled={acceptingId !== null}
-                          onClick={() => handleAccept(s.id)}
-                        >
-                          {acceptingId === s.id ? 'Aceptando…' : '✔ Aceptar (artista +1 token)'}
-                        </button>
+                        <div className="accept-actions">
+                          <button
+                            className="btn-accept"
+                            disabled={acceptingId !== null || rejectingId !== null}
+                            onClick={() => handleAccept(s.id)}
+                          >
+                            {acceptingId === s.id ? 'Aceptando…' : '✔ Aceptar'}
+                          </button>
+                          <button
+                            className="btn-reject"
+                            disabled={acceptingId !== null || rejectingId !== null}
+                            onClick={() => handleReject(s.id)}
+                          >
+                            {rejectingId === s.id ? 'Rechazando…' : '✖ Rechazar (devuelve token)'}
+                          </button>
+                        </div>
                       )}
                     </div>
                     {previewData[s.id] && (
@@ -517,7 +548,7 @@ const Dashboard = () => {
               </ul>
             ) : (
               <div className="no-items">
-                Recibe propuestas de artistas y al aceptarlas, el artista autor recupera su token.
+                Recibe propuestas de artistas: si aceptas se consume su token, si rechazas se lo devuelves.
               </div>
             )}
           </div>

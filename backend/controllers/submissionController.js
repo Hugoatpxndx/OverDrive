@@ -169,7 +169,7 @@ const acceptSubmission = async (req, res) => {
 
     // Obtener la submission junto con su playlist para verificar propiedad
     const [submissionRows] = await connection.execute(
-      `SELECT s.id, s.status, s.playlist_id, s.track_url,
+      `SELECT s.id, s.status, s.playlist_id, s.track_url, s.artist_id,
               p.user_id AS playlist_owner, p.spotify_id AS playlist_spotify_id
        FROM submissions s
        JOIN playlists p ON p.id = s.playlist_id
@@ -243,9 +243,72 @@ const acceptSubmission = async (req, res) => {
       return res.status(400).json({ error: 'La propuesta ya fue procesada' });
     }
 
-    // Otorgar 1 token al artista autor de la propuesta aceptada,
-    // respetando el tope máximo de 10. Así el artista recupera el token
-    // que gastó al enviar y la aprobación es su recompensa.
+    // El token ya se descontó al enviar; al aceptar se CONSOME (el artista
+    // pagó por estar en la playlist). No hay reembolso ni recompensa extra.
+    const message = synced
+      ? 'Propuesta aceptada: canción agregada a tu playlist de Spotify'
+      : 'Propuesta aceptada: canción NO se agregó a Spotify — desconecta y vuelve a conectar tu cuenta para conceder permisos de escritura.';
+
+    return res.status(200).json({
+      message,
+      submissionId,
+      synced
+    });
+  } catch (error) {
+    console.error('Error al aceptar propuesta:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  } finally {
+    connection.release();
+  }
+};
+
+// Rechazar propuesta (Modo Curador) - Devuelve el token al artista
+const rejectSubmission = async (req, res) => {
+  const connection = await getConnection();
+  try {
+    const submissionId = parseInt(req.params.id, 10);
+    const curatorId = req.user.id;
+
+    if (isNaN(submissionId) || submissionId <= 0) {
+      return res.status(400).json({ error: 'ID de propuesta inválido' });
+    }
+
+    // Obtener la submission junto con su playlist para verificar propiedad
+    const [submissionRows] = await connection.execute(
+      `SELECT s.id, s.status, s.playlist_id, s.artist_id,
+              p.user_id AS playlist_owner
+       FROM submissions s
+       JOIN playlists p ON p.id = s.playlist_id
+       WHERE s.id = ?`,
+      [submissionId]
+    );
+    if (submissionRows.length === 0) {
+      return res.status(404).json({ error: 'Propuesta no encontrada' });
+    }
+
+    const submission = submissionRows[0];
+
+    // Solo el dueño de la playlist (curador) puede rechazar
+    if (submission.playlist_owner !== curatorId) {
+      return res.status(403).json({ error: 'No tienes permiso para rechazar esta propuesta' });
+    }
+
+    if (submission.status !== 'pendiente') {
+      return res.status(400).json({ error: 'La propuesta ya fue procesada' });
+    }
+
+    // Marcar como rechazada (procesada por este curador)
+    const [updateResult] = await connection.execute(
+      'UPDATE submissions SET status = ?, handled_by = ? WHERE id = ? AND status = ?',
+      ['rechazada', curatorId, submissionId, 'pendiente']
+    );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(400).json({ error: 'La propuesta ya fue procesada' });
+    }
+
+    // Reembolsar el token al artista: al rechazarla no entra en la playlist,
+    // así que el envío no le cuesta nada (máximo 10 por la Wallet Cap).
     const [tokenResult] = await connection.execute(
       'UPDATE users SET tokens = LEAST(tokens + 1, 10) WHERE id = ?',
       [submission.artist_id]
@@ -255,17 +318,12 @@ const acceptSubmission = async (req, res) => {
       return res.status(500).json({ error: 'Error al actualizar tokens' });
     }
 
-    const message = synced
-      ? 'Propuesta aceptada: canción agregada a tu playlist de Spotify (+1 token para el artista)'
-      : 'Propuesta aceptada: +1 token para el artista. La canción NO se agregó a Spotify — desconecta y vuelve a conectar tu cuenta para conceder permisos de escritura.';
-
     return res.status(200).json({
-      message,
-      submissionId,
-      synced
+      message: 'Propuesta rechazada: se devolvió 1 token al artista',
+      submissionId
     });
   } catch (error) {
-    console.error('Error al aceptar propuesta:', error);
+    console.error('Error al rechazar propuesta:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   } finally {
     connection.release();
@@ -315,4 +373,4 @@ const listCuratorSubmissions = async (req, res) => {
   }
 };
 
-module.exports = { submitSong, acceptSubmission, listMySubmissions, listCuratorSubmissions };
+module.exports = { submitSong, acceptSubmission, rejectSubmission, listMySubmissions, listCuratorSubmissions };
