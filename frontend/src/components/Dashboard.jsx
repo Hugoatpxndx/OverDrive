@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 
 const Dashboard = () => {
-  const { user, modo, toggleModo, logout } = useAuth();
+  const { user, modo, toggleModo, logout, refreshUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Datos del sistema
@@ -83,6 +83,7 @@ const Dashboard = () => {
       setIncoming(incRes.data.submissions || []);
       setMySubmissions(subRes.data.submissions || []);
       setUsers(usersRes.data.users || []);
+      await refreshUser(); // sincroniza el contador de tokens con la BD
     } catch (err) {
       setError('No se pudieron cargar las playlists');
     } finally {

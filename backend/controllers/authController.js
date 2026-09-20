@@ -136,4 +136,23 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+// Información actual del usuario autenticado (tokens exactos desde la BD).
+// El frontend la usa para refrescar el contador tras enviar/aceptar.
+const me = async (req, res) => {
+  try {
+    const users = await executeQuery(
+      'SELECT id, username, email, role, tokens FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    const user = users[0];
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error('Error en me:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
+module.exports = { register, login, me };

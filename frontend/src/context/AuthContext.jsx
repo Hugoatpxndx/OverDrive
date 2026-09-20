@@ -98,6 +98,18 @@ export const AuthProvider = ({ children }) => {
     setModo((prev) => (prev === 'artista' ? 'curador' : 'artista'));
   }, []);
 
+  // Refresca los datos del usuario desde la BD (mantiene el contador de
+  // tokens sincronizado tras enviar/aceptar propuestas).
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await api.get('/api/auth/me');
+      setUser(res.data.user);
+      localStorage.setItem('od_user', JSON.stringify(res.data.user));
+    } catch (err) {
+      // Token expirado o red caída; se mantiene el valor previo en memoria.
+    }
+  }, []);
+
   const value = {
     user,
     token,
@@ -108,6 +120,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     toggleModo,
+    refreshUser,
     initFromStorage
   };
 

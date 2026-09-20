@@ -1,8 +1,12 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { register, login } = require('../controllers/authController');
+const { authenticate } = require('../middlewares/auth');
+const { register, login, me } = require('../controllers/authController');
 
 const router = express.Router();
+
+// GET /api/auth/me - Datos actuales del usuario autenticado (contador de tokens al día)
+router.get('/me', authenticate, me);
 
 // Ruta POST /api/auth/register
 // Validación estricta de inputs (express-validator)

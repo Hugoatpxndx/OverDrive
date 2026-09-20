@@ -12,7 +12,7 @@ jest.mock('../config/db', () => ({
 }));
 
 const { executeQuery } = require('../config/db');
-const { register, login } = require('../controllers/authController');
+const { register, login, me } = require('../controllers/authController');
 const { listUsers } = require('../controllers/adminController');
 const { createPlaylist } = require('../controllers/playlistController');
 
@@ -77,6 +77,21 @@ describe('Cobertura: validaciones defensivas y errores 500', () => {
       executeQuery.mockRejectedValueOnce(new Error('db down'));
       const res = mockRes();
       await login({ body: { identifier: 'x', password: 'y' } }, res);
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('authController.me', () => {
+    test('responde 404 si el usuario autenticado no existe en la BD', async () => {
+      const res = mockRes();
+      await me({ user: { id: 999 } }, res);
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    test('responde 500 si la BD falla al consultar el usuario', async () => {
+      executeQuery.mockRejectedValueOnce(new Error('db down'));
+      const res = mockRes();
+      await me({ user: { id: 1 } }, res);
       expect(res.status).toHaveBeenCalledWith(500);
     });
   });
