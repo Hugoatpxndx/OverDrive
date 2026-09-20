@@ -1217,10 +1217,21 @@ label.field input {
   font-weight: 600;
   text-transform: none;
 }
-.track-audio {
+.track-embed {
+  margin-top: 0.5rem;
   width: 100%;
-  max-width: 320px;
-  height: 36px;
+  max-width: 360px;
+}
+.track-embed iframe {
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: #000;
+  box-shadow: 0 0 12px var(--glow-weak);
+}
+.track-embed .btn-open-spotify {
+  margin-top: 0.5rem;
 }
 .btn-open-spotify {
   display: inline-flex;

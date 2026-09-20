@@ -260,8 +260,9 @@ const Dashboard = () => {
     }
   };
 
-  // Carga la info del track (preview de 30s + géneros) para escucharla antes
-  // de aceptar. Si ya está cargada, la oculta.
+  // Carga la info del track (carátula, artistas, géneros) para revisarla antes
+  // de aceptar. La reproducción se hace con el reproductor embebido de Spotify
+  // (canción completa), porque la API ya no entrega previews de 30 s.
   const handlePreview = async (subId) => {
     if (previewData[subId]) {
       setPreviewData((prev) => {
@@ -516,30 +517,25 @@ const Dashboard = () => {
                               ))}
                             </div>
                           )}
-                          {previewData[s.id].preview_url ? (
-                            <audio
-                              controls
-                              src={previewData[s.id].preview_url}
-                              className="track-audio"
+                          <div className="track-embed">
+                            <iframe
+                              src={`https://open.spotify.com/embed/track/${extractTrackId(s.track_url)}?utm_source=generator&theme=0`}
+                              width="100%"
+                              height="152"
+                              frameBorder="0"
+                              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                              loading="lazy"
+                              title={`Reproductor de Spotify — ${previewData[s.id].name || s.track_name}`}
+                            />
+                            <a
+                              className="btn-open-spotify"
+                              href={s.track_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
                             >
-                              Tu navegador no puede reproducir el audio.
-                            </audio>
-                          ) : (
-                            <div>
-                              <p className="no-items">
-                                Este track no tiene preview de 30 s disponible en la API de
-                                Spotify. Ábrelo para escucharlo.
-                              </p>
-                              <a
-                                className="btn-open-spotify"
-                                href={s.track_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                ▶ Abrir en Spotify
-                              </a>
-                            </div>
-                          )}
+                              ▶ Abrir en Spotify
+                            </a>
+                          </div>
                         </div>
                       </div>
                     )}
