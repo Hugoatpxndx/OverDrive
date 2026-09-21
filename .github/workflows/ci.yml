@@ -270,7 +270,7 @@ jobs:
           echo "== login admin =="
           TOKEN=$(curl -sf -X POST http://localhost:4000/api/auth/login \
             -H 'Content-Type: application/json' \
-            -d '{"identifier":"admin@overdrive.app","password":"Admin123!"}' \
+            -d '{"identifier":"admin@overdrive.app","password":"8H8LrSK8qUhvuY7i6Ghs"}' \
             | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
           echo "JWT obtenido: ${TOKEN:0:25}..."
           echo "== endpoint protegido con el token =="
