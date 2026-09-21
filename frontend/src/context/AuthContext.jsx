@@ -93,6 +93,26 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('od_user');
   }, []);
 
+  // Verifica el email del usuario autenticado con el código de 6 dígitos.
+  const verifyEmail = useCallback(async (code) => {
+    try {
+      const res = await api.post('/api/auth/verify', { code });
+      const current = JSON.parse(localStorage.getItem('od_user') || '{}');
+      const updated = { ...current, ...res.data.user };
+      setUser(updated);
+      localStorage.setItem('od_user', JSON.stringify(updated));
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error.response?.data?.errors?.[0]?.msg ||
+          error.response?.data?.error ||
+          'No se pudo verificar el correo'
+      };
+    }
+  }, []);
+
   // Alternar entre modo Artista y Curador
   const toggleModo = useCallback(() => {
     setModo((prev) => (prev === 'artista' ? 'curador' : 'artista'));
@@ -119,6 +139,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    verifyEmail,
     toggleModo,
     refreshUser,
     initFromStorage

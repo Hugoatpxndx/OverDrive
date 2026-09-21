@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 
 const Dashboard = () => {
-  const { user, modo, toggleModo, logout, refreshUser } = useAuth();
+  const { user, modo, toggleModo, logout, refreshUser, verifyEmail } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Datos del sistema
@@ -34,6 +34,7 @@ const Dashboard = () => {
   const [spotifyStatus, setSpotifyStatus] = useState(null);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
+  const [verifyCode, setVerifyCode] = useState('');                      // código de verificación de email
 
   // Popup de confirmación: { title, text, type: 'success'|'error' }
   const [toast, setToast] = useState(null);
@@ -68,6 +69,21 @@ const Dashboard = () => {
     setMessage(msg);
     setError('');
     showToast('¡Listo!', msg, 'success');
+  };
+
+  // Verifica el correo del usuario con el código de 6 dígitos (mock SMTP)
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    const result = await verifyEmail(verifyCode);
+    if (result.success) {
+      setVerifyCode('');
+      await refreshUser();
+      showMessage('Correo verificado. Ya puedes enviar propuestas');
+    } else {
+      showError(result.message);
+    }
   };
 
   // ---------- Carga de datos ----------
@@ -394,6 +410,33 @@ const Dashboard = () => {
         <div className="error-message">⚠️ Esta cuenta de Spotify ya está vinculada a otra cuenta de OverDrive. Desconéctala primero en la otra cuenta, o usa otra cuenta de Spotify.</div>
       )}
 
+      {/* Verificación de email (simula el correo enviado por SMTP) */}
+      {!user?.email_verified && (
+        <div className="verify-banner">
+          <div className="verify-info">
+            <strong>📧 Verifica tu correo para poder enviar propuestas</strong>
+            <p className="verify-hint">
+              Simulando el email enviado a <em>{user?.email}</em>, tu código es{' '}
+              <code className="verify-code">
+                {user?.verificationCode || user?.verification_code || '—'}
+              </code>
+            </p>
+          </div>
+          <form className="verify-form" onSubmit={handleVerify}>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="Código de 6 dígitos"
+              value={verifyCode}
+              onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+              required
+            />
+            <button type="submit" className="btn btn-verify">Verificar</button>
+          </form>
+        </div>
+      )}
+
       {/* Alternar modo Artista / Curador */}
       <section className="modo-selector">
         <h2>Modo de trabajo</h2>
@@ -465,6 +508,11 @@ const Dashboard = () => {
                       <span className="badge badge-sync">♫ Agregada a Spotify</span>
                     )}
                     <span className="submission-date">📅 {formatDate(s.created_at)}</span>
+                    {s.status !== 'pendiente' && s.handled_by_name && (
+                      <span className="submission-date">
+                        {s.status === 'aprobada' ? '✔ Aceptada' : '✖ Rechazada'} por {s.handled_by_name} · {formatDate(s.updated_at)}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -496,7 +544,49 @@ const Dashboard = () => {
             )}
           </div>
 
-          {/* Bandeja de entrada: propuestas PRIMERO (más fácil de revisar) */}
+          {/* Playlists del curador */}
+          {myPlaylists.length > 0 ? (
+            <ul className="lista">
+              {myPlaylists.map((p) => (
+                <li key={p.id}>
+                  <a href={p.spotify_url} target="_blank" rel="noopener noreferrer">{p.name}</a>
+                  {' · '}{p.followers} seguidores
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="no-items">
+              Aún no tienes playlists. Conecta tu cuenta de Spotify para importarlas, o regístrala abajo.
+            </div>
+          )}
+
+          <form className="crear-playlist" onSubmit={handleCreatePlaylist}>
+            <h3>Registrar playlist manualmente</h3>
+            <input
+              placeholder="Nombre de la playlist"
+              value={plName}
+              onChange={(e) => setPlName(e.target.value)}
+              required
+            />
+            <input
+              type="url"
+              placeholder="URL de la playlist (open.spotify.com/playlist/...)"
+              value={plUrl}
+              onChange={(e) => setPlUrl(e.target.value)}
+              required
+              pattern="https?://open\.spotify\.com/playlist/[a-zA-Z0-9]+(\?[a-zA-Z0-9&=._%+-]*)?"
+            />
+            <input
+              type="number"
+              placeholder="Seguidores (opcional)"
+              value={plFollowers}
+              onChange={(e) => setPlFollowers(e.target.value)}
+              min="0"
+            />
+            <button type="submit">Guardar playlist</button>
+          </form>
+
+          {/* Bandeja de entrada: propuestas */}
           <div className="bandeja-propuestas">
             <h2>Bandeja de entrada
               {pendingIncoming > 0 && (
@@ -520,6 +610,11 @@ const Dashboard = () => {
                         </span>
                       </div>
                       <div className="submission-date">📅 Enviada el {formatDate(s.created_at)}</div>
+                      {s.status !== 'pendiente' && s.handled_by_name && (
+                        <div className="submission-date">
+                          {s.status === 'aprobada' ? '✔ Aceptada' : '✖ Rechazada'} por {s.handled_by_name} · {formatDate(s.updated_at)}
+                        </div>
+                      )}
                     </div>
                     <div className="submission-actions">
                       <span className={`badge badge-${s.status}`}>{s.status}</span>
@@ -604,47 +699,6 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-
-          {myPlaylists.length > 0 ? (
-            <ul className="lista">
-              {myPlaylists.map((p) => (
-                <li key={p.id}>
-                  <a href={p.spotify_url} target="_blank" rel="noopener noreferrer">{p.name}</a>
-                  {' · '}{p.followers} seguidores
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="no-items">
-              Aún no tienes playlists. Conecta tu cuenta de Spotify para importarlas, o regístrala abajo.
-            </div>
-          )}
-
-          <form className="crear-playlist" onSubmit={handleCreatePlaylist}>
-            <h3>Registrar playlist manualmente</h3>
-            <input
-              placeholder="Nombre de la playlist"
-              value={plName}
-              onChange={(e) => setPlName(e.target.value)}
-              required
-            />
-            <input
-              type="url"
-              placeholder="URL de la playlist (open.spotify.com/playlist/...)"
-              value={plUrl}
-              onChange={(e) => setPlUrl(e.target.value)}
-              required
-              pattern="https?://open\.spotify\.com/playlist/[a-zA-Z0-9]+(\?[a-zA-Z0-9&=._%+-]*)?"
-            />
-            <input
-              type="number"
-              placeholder="Seguidores (opcional)"
-              value={plFollowers}
-              onChange={(e) => setPlFollowers(e.target.value)}
-              min="0"
-            />
-            <button type="submit">Guardar playlist</button>
-          </form>
         </section>
       )}
 

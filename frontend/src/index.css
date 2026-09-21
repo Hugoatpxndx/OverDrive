@@ -718,6 +718,63 @@ label.field input {
   opacity: 0.6;
   cursor: not-allowed;
 }
+/* ---- Banner de verificación de email ---- */
+.verify-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  background: rgba(234, 179, 8, 0.12);
+}
+.verify-banner .verify-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+.verify-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(127, 127, 127, 0.15);
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+  letter-spacing: 0.15em;
+}
+.verify-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.verify-form input {
+  width: 11rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.4);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+.btn-verify {
+  background: #ca8a04;
+  color: #fff;
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-verify:hover {
+  background: #a16207;
+}
 .accept-actions {
   display: flex;
   gap: 0.5rem;

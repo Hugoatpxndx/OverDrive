@@ -75,15 +75,18 @@ const submitSong = async (req, res) => {
       return res.status(400).json({ error: 'ID de playlist inválido' });
     }
 
-    // Verificar que el artista tiene tokens suficientes
+    // Verificar que el artista tiene tokens suficientes y el email verificado
     const [artistRows] = await connection.execute(
-      'SELECT id, tokens FROM users WHERE id = ?',
+      'SELECT id, tokens, email_verified FROM users WHERE id = ?',
       [artistId]
     );
     if (artistRows.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
     const artist = artistRows[0];
+    if (!artist.email_verified) {
+      return res.status(403).json({ error: 'Verifica tu correo antes de enviar propuestas (código en tu pantalla de perfil)' });
+    }
     if (artist.tokens < 1) {
       return res.status(402).json({ error: 'Tokens insuficientes: necesitas al menos 1 token' });
     }
@@ -102,6 +105,25 @@ const submitSong = async (req, res) => {
     // No permitir que un artista envíe a su propia playlist
     if (playlist.user_id === artistId) {
       return res.status(400).json({ error: 'No puedes enviar una propuesta a tu propia playlist' });
+    }
+
+    // Validación REAL contra la API de Spotify usando el token de aplicación
+    // (Client Credentials Flow, sin exigir sesión del artista en Spotify):
+    // si la canción no existe, se rechaza el envío ANTES de gastar el token.
+    // Si la API falla por red/config, el envío continúa (soft fail) para no
+    // bloquear el flujo en entornos sin conexión a Spotify.
+    if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
+      try {
+        await spotify.getTrackApp(spotifyTrackId);
+      } catch (trackErr) {
+        // Spotify responde 404 (no existe) o 400 (id inválido) cuando la
+        // canción no está en su catálogo. Solo esas respuestas se rechazan.
+        const status = trackErr.response?.status;
+        if (status === 404 || status === 400) {
+          return res.status(400).json({ error: 'El track no existe en Spotify (valida el enlace)' });
+        }
+        console.warn('Track no validado contra Spotify (soft fail):', trackErr.message);
+      }
     }
 
     // Nota: No usar transacciones largas aquí porque tomaría el lock de la wallet.
@@ -345,10 +367,11 @@ const listMySubmissions = async (req, res) => {
   try {
     const userId = req.user.id;
     const rows = await executeQuery(
-      `SELECT s.id, s.track_url, s.track_name, s.status, s.spotify_synced, s.created_at,
-              p.name AS playlist_name
+      `SELECT s.id, s.track_url, s.track_name, s.status, s.spotify_synced, s.created_at, s.updated_at,
+              p.name AS playlist_name, h.username AS handled_by_name
        FROM submissions s
        JOIN playlists p ON p.id = s.playlist_id
+       LEFT JOIN users h ON h.id = s.handled_by
        WHERE s.artist_id = ?
        ORDER BY s.created_at DESC`,
       [userId]
@@ -366,11 +389,12 @@ const listCuratorSubmissions = async (req, res) => {
   try {
     const userId = req.user.id;
     const rows = await executeQuery(
-      `SELECT s.id, s.track_url, s.track_name, s.status, s.spotify_synced, s.created_at,
-              p.name AS playlist_name, u.username AS artist
+      `SELECT s.id, s.track_url, s.track_name, s.status, s.spotify_synced, s.created_at, s.updated_at,
+              p.name AS playlist_name, u.username AS artist, h.username AS handled_by_name
        FROM submissions s
        JOIN playlists p ON p.id = s.playlist_id
        JOIN users u ON u.id = s.artist_id
+       LEFT JOIN users h ON h.id = s.handled_by
        WHERE p.user_id = ?
        ORDER BY s.created_at DESC`,
       [userId]

@@ -190,6 +190,49 @@ const getArtists = async (accessToken, artistIds) => {
   return resp.data.artists || [];
 };
 
+// ------------------------------------------------------------
+// Client Credentials Flow (token de APLICACIÓN, sin usuario)
+// Se usa para VALIDAR que un track existe realmente al enviar una
+// propuesta, sin exigir que el artista conecte su cuenta de Spotify.
+// El token se cachea en memoria hasta que expira (~1 hora).
+// ------------------------------------------------------------
+let appTokenCache = null; // { token, expiresAt }
+
+const getAppToken = async () => {
+  const now = Date.now();
+  if (appTokenCache && appTokenCache.expiresAt > now + 60 * 1000) {
+    return appTokenCache.token;
+  }
+  const body = new URLSearchParams({ grant_type: 'client_credentials' });
+  const resp = await withRetry(() =>
+    axios.post(TOKEN_URL, body.toString(), {
+      ...defaultConfig,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')}`
+      }
+    }), 2
+  );
+  appTokenCache = {
+    token: resp.data.access_token,
+    expiresAt: now + (resp.data.expires_in || 3600) * 1000
+  };
+  return appTokenCache.token;
+};
+
+// Valida que un track exista consultándolo con el token de aplicación.
+// Lanza un error con response.status 404 si la canción no existe.
+const getTrackApp = async (trackId) => {
+  const token = await getAppToken();
+  const resp = await withRetry(() =>
+    axios.get(`${API_URL}/tracks/${trackId}`, {
+      ...defaultConfig,
+      headers: { Authorization: `Bearer ${token}` }
+    }), 2
+  );
+  return resp.data;
+};
+
 module.exports = {
   buildAuthUrl,
   exchangeCode,
@@ -199,5 +242,7 @@ module.exports = {
   getPlaylistFollowers,
   addTracksToPlaylist,
   getTrack,
-  getArtists
+  getArtists,
+  getAppToken,
+  getTrackApp
 };

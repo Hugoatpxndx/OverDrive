@@ -20,7 +20,7 @@ const dbState = {
 jest.mock('../config/db', () => {
   return {
     executeQuery: jest.fn(async (sql, params) => {
-      if (sql.includes('SELECT id, username, email, password_hash, role, tokens FROM users')) {
+      if (sql.includes('FROM users WHERE email = ? OR username = ?')) {
         return dbState.users.filter(
           (u) => u.email === params[0] || u.username === params[0]
         );
@@ -38,10 +38,28 @@ jest.mock('../config/db', () => {
           email: params[1],
           password_hash: params[2],
           role: params[3],
-          tokens: params[4]
+          tokens: params[4],
+          email_verified: 0,
+          verification_code: null
         };
         dbState.users.push(user);
         return { insertId: user.id, affectedRows: 1 };
+      }
+      if (sql.includes('UPDATE users SET verification_code')) {
+        const u = dbState.users.find((x) => x.id === params[1]);
+        if (u) u.verification_code = params[0];
+        return { affectedRows: u ? 1 : 0 };
+      }
+      if (sql.includes('UPDATE users SET email_verified = 1')) {
+        const u = dbState.users.find((x) => x.id === params[0]);
+        if (u) {
+          u.email_verified = 1;
+          u.verification_code = null;
+        }
+        return { affectedRows: u ? 1 : 0 };
+      }
+      if (sql.includes('FROM users WHERE id = ?')) {
+        return dbState.users.filter((u) => u.id === params[0]);
       }
       return [];
     }),
@@ -238,6 +256,90 @@ describe('Autenticación OverDrive', () => {
         .send({ identifier: '', password: '' });
 
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe('Verificación de email', () => {
+    test('Registro devuelve un código de verificación y email_verified=false', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          username: 'verif_user',
+          email: 'verif@test.com',
+          password: 'Password123'
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.user.email_verified).toBe(0);
+      expect(response.body.user.verificationCode).toMatch(/^\d{6}$/);
+    });
+
+    test('Verifica el correo con el código correcto', async () => {
+      const reg = await request(app)
+        .post('/api/auth/register')
+        .send({
+          username: 'verif_ok',
+          email: 'ok@test.com',
+          password: 'Password123'
+        });
+      const code = reg.body.user.verificationCode;
+
+      const response = await request(app)
+        .post('/api/auth/verify')
+        .set('Authorization', `Bearer ${reg.body.token}`)
+        .send({ code });
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toContain('verificado');
+      expect(response.body.user.email_verified).toBe(1);
+
+      // El usuario ya está verificado en la BD simulada
+      expect(dbState.users.find((u) => u.username === 'verif_ok').email_verified).toBe(1);
+      expect(dbState.users.find((u) => u.username === 'verif_ok').verification_code).toBeNull();
+    });
+
+    test('Rechaza un código incorrecto (400)', async () => {
+      const reg = await request(app)
+        .post('/api/auth/register')
+        .send({
+          username: 'verif_wrong',
+          email: 'wrong@test.com',
+          password: 'Password123'
+        });
+
+      const response = await request(app)
+        .post('/api/auth/verify')
+        .set('Authorization', `Bearer ${reg.body.token}`)
+        .send({ code: '000000' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Código incorrecto');
+    });
+
+    test('Rechaza verificar dos veces (409)', async () => {
+      const reg = await request(app)
+        .post('/api/auth/register')
+        .send({
+          username: 'verif_twice',
+          email: 'twice@test.com',
+          password: 'Password123'
+        });
+      const code = reg.body.user.verificationCode;
+      const headers = { Authorization: `Bearer ${reg.body.token}` };
+
+      await request(app).post('/api/auth/verify').set(headers).send({ code });
+      const second = await request(app).post('/api/auth/verify').set(headers).send({ code });
+
+      expect(second.status).toBe(409);
+      expect(second.body.error).toContain('ya está verificado');
+    });
+
+    test('Rechaza verificar sin token (401)', async () => {
+      const response = await request(app)
+        .post('/api/auth/verify')
+        .send({ code: '123456' });
+
+      expect(response.status).toBe(401);
     });
   });
 

@@ -168,7 +168,7 @@ cd backend
 npm test
 ```
 
-Actualmente hay **70 tests** cubriendo autenticación, control de roles, envío/aceptación de canciones (tokens), playlists, integración con Spotify y rutas de administración. Cobertura real verificada: **statements 84%, branches 69%, functions 95%** (supera los umbrales: ≥80% statements/lines/functions y ≥65% branches). Los umbrales se definen en `backend/jest.config.js`.
+Actualmente hay **87 tests** cubriendo autenticación, verificación de email, control de roles, envío/aceptación/rechazo de canciones (tokens), validación real del track en Spotify, playlists, integración con Spotify y rutas de administración. Cobertura real verificada: **statements 84.6%, branches 70.4%, functions 95.3%** (supera los umbrales: ≥80% statements/lines/functions y ≥65% branches). Los umbrales se definen en `backend/jest.config.js`.
 
 ---
 
@@ -251,14 +251,15 @@ docker run --rm --network host -v "$PWD/docs:/zap/wrk:rw" \
 
 | Método | Ruta | Descripción | Acceso |
 |--------|------|-------------|--------|
-| POST | `/api/auth/register` | Registrar nuevo usuario | Público |
+| POST | `/api/auth/register` | Registrar nuevo usuario (bono 3 tokens + código de verificación) | Público |
 | POST | `/api/auth/login` | Iniciar sesión (devuelve JWT) | Público |
+| POST | `/api/auth/verify` | Verificar el email con el código de 6 dígitos | Autenticado |
+| GET | `/api/auth/me` | Datos actuales del usuario (tokens frescos) | Autenticado |
 | GET | `/api/health` | Estado del servidor | Público |
-| POST | `/api/submissions` | Enviar canción (cuesta 1 token) | Autenticado |
+| POST | `/api/submissions` | Enviar canción (cuesta 1 token; valida el track en Spotify) | Autenticado |
 | GET | `/api/submissions` | Listar mis propuestas | Autenticado |
 | POST | `/api/submissions/:id/accept` | Aceptar propuesta (+1 token para el curador) | Curador |
 | POST | `/api/submissions/:id/reject` | Rechazar propuesta (devuelve el token al artista) | Curador |
-| GET | `/api/auth/me` | Datos actuales del usuario (tokens frescos) | Autenticado |
 | GET | `/api/admin/users` | Listar usuarios (sin hashes) | Administrador |
 
 ---

@@ -1,12 +1,29 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { authenticate } = require('../middlewares/auth');
-const { register, login, me } = require('../controllers/authController');
+const { register, login, verifyEmail, me } = require('../controllers/authController');
 
 const router = express.Router();
 
 // GET /api/auth/me - Datos actuales del usuario autenticado (contador de tokens al día)
 router.get('/me', authenticate, me);
+
+// POST /api/auth/verify - Verificar el email con el código de 6 dígitos
+router.post(
+  '/verify',
+  [
+    body('code').trim().isLength({ min: 6, max: 6 }).withMessage('El código debe tener 6 dígitos')
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  },
+  authenticate,
+  verifyEmail
+);
 
 // Ruta POST /api/auth/register
 // Validación estricta de inputs (express-validator)

@@ -12,10 +12,11 @@ process.env.JWT_EXPIRES_IN = '1h';
 // Mock de la capa de BD con un estado simulado simple
 const dbState = {
   users: [
-    { id: 1, username: 'admin', tokens: 10, role: 'administrador' },
-    { id: 2, username: 'curator1', tokens: 5, role: 'usuario' },
-    { id: 3, username: 'artist1', tokens: 1, role: 'usuario' },
-    { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario' }
+    { id: 1, username: 'admin', tokens: 10, role: 'administrador', email_verified: 1 },
+    { id: 2, username: 'curator1', tokens: 5, role: 'usuario', email_verified: 1 },
+    { id: 3, username: 'artist1', tokens: 1, role: 'usuario', email_verified: 1 },
+    { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario', email_verified: 1 },
+    { id: 5, username: 'artist_sin_verificar', tokens: 5, role: 'usuario', email_verified: 0 }
   ],
   playlists: [
     { id: 1, user_id: 2, spotify_id: 'playlistA', name: 'Vibraciones', followers: 1200 }
@@ -30,8 +31,8 @@ jest.mock('../config/db', () => {
           if (dbState.failNextError) {
             throw new Error('Error interno de BD simulado');
           }
-          // SELECT de usuarios por id (revisión de tokens del artista)
-          if (sql.includes('SELECT id, tokens FROM users WHERE id')) {
+          // SELECT de usuarios por id (revisión de tokens/email del artista)
+          if (sql.includes('SELECT id, tokens, email_verified FROM users WHERE id')) {
             const user = dbState.users.find((u) => u.id === params[0]);
             return [user ? [user] : []];
           }
@@ -152,7 +153,8 @@ jest.mock('../config/db', () => {
 // Mock del cliente HTTP de Spotify (no hacer llamadas reales de red)
 jest.mock('../config/spotify', () => ({
   addTracksToPlaylist: jest.fn(async () => ({ snapshot_id: 'snap_test' })),
-  refreshAccessToken: jest.fn(async () => ({ access_token: 'refreshed_access' }))
+  refreshAccessToken: jest.fn(async () => ({ access_token: 'refreshed_access' })),
+  getTrackApp: jest.fn(async () => ({ id: 'track_valid' }))
 }));
 
 const app = require('../server');
@@ -168,10 +170,11 @@ const createToken = (userId, role) => {
 // Resetear el estado simulado antes de cada test
 beforeEach(() => {
   dbState.users = [
-    { id: 1, username: 'admin', tokens: 10, role: 'administrador' },
-    { id: 2, username: 'curator1', tokens: 5, role: 'usuario' },
-    { id: 3, username: 'artist1', tokens: 1, role: 'usuario' },
-    { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario' }
+    { id: 1, username: 'admin', tokens: 10, role: 'administrador', email_verified: 1 },
+    { id: 2, username: 'curator1', tokens: 5, role: 'usuario', email_verified: 1 },
+    { id: 3, username: 'artist1', tokens: 1, role: 'usuario', email_verified: 1 },
+    { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario', email_verified: 1 },
+    { id: 5, username: 'artist_sin_verificar', tokens: 5, role: 'usuario', email_verified: 0 }
   ];
   dbState.submissions = [];
   dbState.nextSubId = 1;
@@ -326,16 +329,83 @@ describe('Envío de Canciones (Modo Artista)', () => {
     expect(response.status).toBe(409);
     expect(response.body.error).toContain('ya fue enviada');
   });
+
+  test('Debe rechazar envío si el track NO existe en Spotify (400) sin gastar token', async () => {
+    require('../config/spotify').getTrackApp.mockRejectedValueOnce({
+      response: { status: 404 }
+    });
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        trackUrl: 'https://open.spotify.com/track/InVeRiDiBLe',
+        playlistId: 1
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain('no existe en Spotify');
+    // El token NO se descuenta (el artista 3 sigue con 1)
+    expect(dbState.users.find((u) => u.id === 3).tokens).toBe(1);
+  });
+
+  test('Debe rechazar envío cuando Spotify devuelve id inválido (400) sin gastar token', async () => {
+    require('../config/spotify').getTrackApp.mockRejectedValueOnce({
+      response: { status: 400 }
+    });
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        trackUrl: 'https://open.spotify.com/track/InVeRiDiBLe',
+        playlistId: 1
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain('no existe en Spotify');
+    expect(dbState.users.find((u) => u.id === 3).tokens).toBe(1);
+  });
+
+  test('Debe permitir envío aunque Spotify falle por red (soft fail)', async () => {
+    require('../config/spotify').getTrackApp.mockRejectedValueOnce(
+      new Error('network error')
+    );
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        trackUrl: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+        playlistId: 1
+      });
+
+    expect(response.status).toBe(201);
+  });
+
+  test('Debe rechazar envío si el email del artista no está verificado (403)', async () => {
+    const token = createToken(5, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        trackUrl: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+        playlistId: 1
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toContain('Verifica tu correo');
+  });
 });
 
 describe('Aceptar Propuestas (Modo Curador)', () => {
   beforeEach(async () => {
     // Resetear estado
     dbState.users = [
-      { id: 1, username: 'admin', tokens: 10, role: 'administrador' },
-      { id: 2, username: 'curator1', tokens: 5, role: 'usuario' },
-      { id: 3, username: 'artist1', tokens: 1, role: 'usuario' },
-      { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario' }
+      { id: 1, username: 'admin', tokens: 10, role: 'administrador', email_verified: 1 },
+      { id: 2, username: 'curator1', tokens: 5, role: 'usuario', email_verified: 1 },
+      { id: 3, username: 'artist1', tokens: 1, role: 'usuario', email_verified: 1 },
+      { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario', email_verified: 1 }
     ];
     dbState.playlists = [
       { id: 1, user_id: 2, spotify_id: 'playlistA', name: 'Vibraciones', followers: 1200 }
@@ -429,10 +499,10 @@ describe('Rechazar Propuestas (Modo Curador)', () => {
   beforeEach(async () => {
     // Resetear estado
     dbState.users = [
-      { id: 1, username: 'admin', tokens: 10, role: 'administrador' },
-      { id: 2, username: 'curator1', tokens: 5, role: 'usuario' },
-      { id: 3, username: 'artist1', tokens: 1, role: 'usuario' },
-      { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario' }
+      { id: 1, username: 'admin', tokens: 10, role: 'administrador', email_verified: 1 },
+      { id: 2, username: 'curator1', tokens: 5, role: 'usuario', email_verified: 1 },
+      { id: 3, username: 'artist1', tokens: 1, role: 'usuario', email_verified: 1 },
+      { id: 4, username: 'artist_nopobre', tokens: 0, role: 'usuario', email_verified: 1 }
     ];
     dbState.playlists = [
       { id: 1, user_id: 2, spotify_id: 'playlistA', name: 'Vibraciones', followers: 1200 }

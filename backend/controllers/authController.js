@@ -60,6 +60,15 @@ const register = async (req, res) => {
 
     const userId = result.insertId;
 
+    // Código de verificación de email (6 dígitos). Simula el correo que se
+    // enviaría por SMTP en producción: el frontend lo muestra en pantalla
+    // como "correo simulado". Sin él, el usuario no puede enviar propuestas.
+    const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
+    await executeQuery(
+      'UPDATE users SET verification_code = ? WHERE id = ?',
+      [verificationCode, userId]
+    );
+
     // Generar JWT con roles
     const token = jwt.sign(
       { id: userId, username, role: 'usuario' },
@@ -75,7 +84,9 @@ const register = async (req, res) => {
         username,
         email,
         role: 'usuario',
-        tokens: 3
+        tokens: 3,
+        email_verified: 0,
+        verificationCode
       }
     });
   } catch (error) {
@@ -96,7 +107,7 @@ const login = async (req, res) => {
 
     // Query preparada: parámetros separados, imposible inyección SQL
     const users = await executeQuery(
-      'SELECT id, username, email, password_hash, role, tokens FROM users WHERE email = ? OR username = ?',
+      'SELECT id, username, email, password_hash, role, tokens, email_verified, verification_code FROM users WHERE email = ? OR username = ?',
       [identifier, identifier]
     );
 
@@ -127,11 +138,55 @@ const login = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        tokens: user.tokens
+        tokens: user.tokens,
+        email_verified: user.email_verified,
+        verification_code: user.verification_code
       }
     });
   } catch (error) {
     console.error('Error en login:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
+// Verificación de email con el código de 6 dígitos (mock de correo).
+const verifyEmail = async (req, res) => {
+  try {
+    const code = String(req.body.code || '').trim();
+    if (!/^\d{6}$/.test(code)) {
+      return res.status(400).json({ error: 'Código de verificación inválido (6 dígitos)' });
+    }
+    const users = await executeQuery(
+      'SELECT id, username, email, role, tokens, email_verified, verification_code FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    const user = users[0];
+    if (user.email_verified) {
+      return res.status(409).json({ error: 'El correo ya está verificado' });
+    }
+    if (!user.verification_code || user.verification_code !== code) {
+      return res.status(400).json({ error: 'Código incorrecto' });
+    }
+    await executeQuery(
+      'UPDATE users SET email_verified = 1, verification_code = NULL WHERE id = ?',
+      [req.user.id]
+    );
+    return res.status(200).json({
+      message: 'Correo verificado exitosamente',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        tokens: user.tokens,
+        email_verified: 1
+      }
+    });
+  } catch (error) {
+    console.error('Error al verificar email:', error);
     return res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
@@ -141,7 +196,7 @@ const login = async (req, res) => {
 const me = async (req, res) => {
   try {
     const users = await executeQuery(
-      'SELECT id, username, email, role, tokens FROM users WHERE id = ?',
+      'SELECT id, username, email, role, tokens, email_verified, verification_code FROM users WHERE id = ?',
       [req.user.id]
     );
     if (users.length === 0) {
@@ -155,4 +210,4 @@ const me = async (req, res) => {
   }
 };
 
-module.exports = { register, login, me };
+module.exports = { register, login, verifyEmail, me };

@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role          ENUM('usuario','administrador') NOT NULL DEFAULT 'usuario',
   tokens        SMALLINT UNSIGNED NOT NULL DEFAULT 3,
+  -- Verificación de email: indica si la cuenta confirmó su correo.
+  -- verification_code guarda el código de 6 dígitos (mock del envío por SMTP).
+  email_verified     TINYINT(1) NOT NULL DEFAULT 0,
+  verification_code  VARCHAR(6)  NULL,
   -- Tokens de conexión OAuth con Spotify (Modo Curador)
   spotify_access_token  VARCHAR(500) NULL,
   spotify_refresh_token VARCHAR(500) NULL,
@@ -91,6 +95,6 @@ CREATE INDEX idx_playlists_spotify ON playlists(spotify_id);
 -- La contraseña se genera aleatoriamente por despliegue (ver el script de
 -- provisión / docs locales). No es un secreto público.
 -- ============================================================
-INSERT INTO users (username, email, password_hash, role, tokens)
-SELECT 'admin', 'admin@overdrive.app', '$2a$12$xawFLNM.Dd6VOolicX/dCuO0A1Fz/3bCRQIit/87/foPZgU1pbxwi', 'administrador', 10
+INSERT INTO users (username, email, password_hash, role, tokens, email_verified)
+SELECT 'admin', 'admin@overdrive.app', '$2a$12$xawFLNM.Dd6VOolicX/dCuO0A1Fz/3bCRQIit/87/foPZgU1pbxwi', 'administrador', 10, 1
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@overdrive.app');
