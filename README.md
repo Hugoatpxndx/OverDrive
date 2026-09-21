@@ -124,7 +124,7 @@ docker compose down -v
 | Campo | Valor |
 |-------|-------|
 | Email | `admin@overdrive.app` |
-| Contraseña | `Admin123!` |
+| Contraseña | Consultar en `docs/credenciales-prueba.md` (se genera aleatoriamente y **no** se publica en el repo; `/Admin123!` del README antiguo **fue retirado** por seguridad). |
 
 ---
 

@@ -17,6 +17,8 @@ const Dashboard = () => {
   const [previewData, setPreviewData] = useState({});       // info de tracks (preview/géneros) por propuesta
   const [acceptingId, setAcceptingId] = useState(null);     // propuesta cuyo proceso de aceptación está en curso
   const [rejectingId, setRejectingId] = useState(null);     // propuesta cuyo proceso de rechazo está en curso
+  const [trackInfo, setTrackInfo] = useState({});           // metadatos de Spotify (canción · artista) por propuesta
+  const enrichedRef = useRef(new Set());                    // ids ya consultados a Spotify (evita refetch)
 
   // Formularios
   const [trackUrl, setTrackUrl] = useState('');
@@ -82,6 +84,7 @@ const Dashboard = () => {
       setPlaylists(allPl.filter((p) => p.owner_id !== user?.id));
       setMyPlaylists(allPl.filter((p) => p.owner_id === user?.id));
       setIncoming(incRes.data.submissions || []);
+      enrichIncoming(incRes.data.submissions || []);
       setMySubmissions(subRes.data.submissions || []);
       setUsers(usersRes.data.users || []);
       await refreshUser(); // sincroniza el contador de tokens con la BD
@@ -260,6 +263,50 @@ const Dashboard = () => {
     }
   };
 
+  // Formatea una fecha (ISO/DB) como "20 sep 2026 23:54"
+  const formatDate = (value) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString('es-MX', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Rellena nombre y artista de cada canción de la bandeja consultando
+  // Spotify (un request por propuesta, cacheado). Si falla, la fila se
+  // muestra igual con la URL; sirve de comprobante del envío.
+  const enrichIncoming = async (list) => {
+    if (!list || list.length === 0) return;
+    const pending = list.filter((s) => !enrichedRef.current.has(s.id));
+    if (pending.length === 0) return;
+    const results = await Promise.allSettled(
+      pending.map(async (s) => {
+        const trackId = extractTrackId(s.track_url);
+        if (!trackId) return { id: s.id, info: null };
+        const res = await api.get(`/api/spotify/track/${trackId}`);
+        return {
+          id: s.id,
+          info: { name: res.data.name, artist: (res.data.artists || []).join(', ') }
+        };
+      })
+    );
+    enrichedRef.current = new Set([...enrichedRef.current, ...pending.map((s) => s.id)]);
+    setTrackInfo((prev) => {
+      const next = { ...prev };
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value && r.value.info) {
+          next[r.value.id] = r.value.info;
+        }
+      }
+      return next;
+    });
+  };
+
   // Carga la info del track (carátula, artistas, géneros) para revisarla antes
   // de aceptar. La reproducción se hace con el reproductor embebido de Spotify
   // (canción completa), porque la API ya no entrega previews de 30 s.
@@ -417,6 +464,7 @@ const Dashboard = () => {
                     {s.spotify_synced === 1 && (
                       <span className="badge badge-sync">♫ Agregada a Spotify</span>
                     )}
+                    <span className="submission-date">📅 {formatDate(s.created_at)}</span>
                   </li>
                 ))}
               </ul>
@@ -460,10 +508,18 @@ const Dashboard = () => {
                 {incoming.map((s) => (
                   <li key={s.id} className="submission-item">
                     <div className="submission-head">
-                      <a href={s.track_url} target="_blank" rel="noopener noreferrer">{s.track_name || s.track_url}</a>
-                      <div className="submission-dest">
-                        enviada por <strong>{s.artist}</strong> → <strong>{s.playlist_name}</strong>
+                      <a href={s.track_url} target="_blank" rel="noopener noreferrer">
+                        {trackInfo[s.id]?.name || s.track_name || s.track_url}
+                      </a>
+                      <div className="submission-meta">
+                        {trackInfo[s.id] && (
+                          <span className="submission-artist">🎤 {trackInfo[s.id].artist}</span>
+                        )}
+                        <span className="submission-dest">
+                          enviada por <strong>{s.artist}</strong> → <strong>{s.playlist_name}</strong>
+                        </span>
                       </div>
+                      <div className="submission-date">📅 Enviada el {formatDate(s.created_at)}</div>
                     </div>
                     <div className="submission-actions">
                       <span className={`badge badge-${s.status}`}>{s.status}</span>

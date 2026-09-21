@@ -48,6 +48,21 @@ const limiter = rateLimit({
 });
 app.use('/api/auth', limiter);
 
+// Limitador ESTRICTO para login/registro (fuerza bruta sobre credenciales):
+// máx 10 intentos por IP cada 15 min. Refuerza al global de /api/auth.
+// Se omite en la suite de tests (evita bloquear pruebas legítimas).
+if (process.env.NODE_ENV !== 'test') {
+  const authStrictLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Demasiados intentos de acceso. Espera 15 minutos.' }
+  });
+  app.use('/api/auth/login', authStrictLimiter);
+  app.use('/api/auth/register', authStrictLimiter);
+}
+
 // Body parser con límite de tamaño (previene DoS por payloads pesados)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));

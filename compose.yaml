@@ -8,11 +8,11 @@
 # Puertos expuestos:
 #   - Frontend: http://localhost:5173
 #   - Backend:  http://localhost:4000  (incl. callback Spotify 127.0.0.1:4000)
-#   - MaríaDB:  127.0.0.1:3307 (solo inspección; no obligatorio)
+#   - MaríaDB:  127.0.0.1:3307 (solo inspección local)
 #
 # NOTA: usa una base de datos LIMPIA (volumen dedicado). Tus datos actuales
-# de la BD local no se usarán. El admin inicial se crea automáticamente:
-#   admin@overdrive.app / Admin123!
+# de la BD local no se usarán. El admin inicial se crea automáticamente con
+# contraseña aleatoria (ver docs/credenciales-prueba.md, entregable local).
 # ============================================================
 
 services:
@@ -26,7 +26,8 @@ services:
       MARIADB_USER: overdrive_user
       MARIADB_PASSWORD: "2010"
     ports:
-      - "3307:3306"
+      # Solo inspección local: nunca expuesto a la red.
+      - "127.0.0.1:3307:3306"
     volumes:
       - db_data:/var/lib/mysql
       # En el primer arranque, MaríaDB ejecuta los scripts en orden alfabético.

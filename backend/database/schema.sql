@@ -87,9 +87,10 @@ CREATE INDEX idx_submissions_status ON submissions(status);
 CREATE INDEX idx_playlists_spotify ON playlists(spotify_id);
 
 -- ============================================================
--- Usuario administrador por defecto (password: Admin123!)
--- El hash corresponde a 'Admin123!' generado con bcrypt
+-- Usuario administrador por defecto
+-- La contraseña se genera aleatoriamente por despliegue (ver el script de
+-- provisión / docs locales). No es un secreto público.
 -- ============================================================
 INSERT INTO users (username, email, password_hash, role, tokens)
-SELECT 'admin', 'admin@overdrive.app', '$2a$12$0VX23/blNH1LjbOivw9Nz.ApdjN7NxSKbSp9rVYkt2bNlD/F1ZitS', 'administrador', 10
+SELECT 'admin', 'admin@overdrive.app', '$2a$12$xawFLNM.Dd6VOolicX/dCuO0A1Fz/3bCRQIit/87/foPZgU1pbxwi', 'administrador', 10
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@overdrive.app');

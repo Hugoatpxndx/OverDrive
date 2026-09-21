@@ -42,6 +42,9 @@
   --label: #334155;
   --navbar-bg: rgba(255, 255, 255, 0.9);
   --brand-text: var(--brand-700);
+  /* Texto (se usaban sin definirse): --text = texto principal, --text-dim = secundario */
+  --text: var(--label);
+  --text-dim: var(--muted);
   --danger-text: #991b1b;
   --danger-line: #fecaca;
   --success-text: #166534;
@@ -1147,6 +1150,22 @@ label.field input {
 }
 .submission-dest strong {
   color: var(--brand-text);
+}
+.submission-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.submission-artist {
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.submission-date {
+  font-size: 0.78rem;
+  color: var(--text-dim);
 }
 .submission-actions {
   display: flex;
