@@ -53,6 +53,7 @@ const submitSong = async (req, res) => {
     const trackUrl = sanitizeString(req.body.trackUrl);
     const playlistId = parseInt(req.body.playlistId, 10);
     const trackName = sanitizeString(req.body.trackName || '');
+    const comment = sanitizeString(req.body.comment || '');
 
     // Validación estricta de la URL del track (inicio a fin)
     // Debe ser una URL de Spotify que contenga /track/ con ID alfanumérico
@@ -143,8 +144,8 @@ const submitSong = async (req, res) => {
     // Si el artista no mandó trackName, usar el nombre obtenido de Spotify
     const finalTrackName = trackName || (trackInfoFromSpotify ? trackInfoFromSpotify.name : '');
     const [insertResult] = await connection.execute(
-      'INSERT INTO submissions (artist_id, playlist_id, track_url, track_name) VALUES (?, ?, ?, ?)',
-      [artistId, playlistId, cleanTrackUrl, finalTrackName]
+      'INSERT INTO submissions (artist_id, playlist_id, track_url, track_name, comment) VALUES (?, ?, ?, ?, ?)',
+      [artistId, playlistId, cleanTrackUrl, finalTrackName, comment]
     );
 
     // Obtener el estado actualizado de tokens
@@ -162,16 +163,6 @@ const submitSong = async (req, res) => {
     });
   } catch (error) {
     console.error('Error en envío de canción:', error.code, error.sqlMessage);
-    // Manejo específico para violación de constraint (duplicado o CHECK tokens)
-    if (error.code === 'ER_DUP_ENTRY') {
-      // El envío duplicado fue rechazado, pero el token ya se descontó antes
-      // del INSERT: lo reembolsamos para que el artista no pierda su token.
-      await connection.execute(
-        'UPDATE users SET tokens = LEAST(tokens + 1, 10) WHERE id = ?',
-        [req.user.id]
-      );
-      return res.status(409).json({ error: 'Esta canción ya fue enviada a esta playlist (token reembolsado)' });
-    }
     if (error.code === 'ER_CHECK_CONSTRAINT_VIOLATED') {
       return res.status(400).json({ error: 'Límite de tokens alcanzado (máximo 10)' });
     }
@@ -365,12 +356,68 @@ const rejectSubmission = async (req, res) => {
   }
 };
 
+// Cancelar envío (Modo Artista) - Devuelve el token al artista
+const cancelSubmission = async (req, res) => {
+  const connection = await getConnection();
+  try {
+    const submissionId = parseInt(req.params.id, 10);
+    const artistId = req.user.id;
+
+    if (isNaN(submissionId) || submissionId <= 0) {
+      return res.status(400).json({ error: 'ID de propuesta inválido' });
+    }
+
+    const [submissionRows] = await connection.execute(
+      'SELECT id, status, artist_id FROM submissions WHERE id = ?',
+      [submissionId]
+    );
+    if (submissionRows.length === 0) {
+      return res.status(404).json({ error: 'Propuesta no encontrada' });
+    }
+
+    const submission = submissionRows[0];
+
+    if (submission.artist_id !== artistId) {
+      return res.status(403).json({ error: 'No tienes permiso para cancelar esta propuesta' });
+    }
+
+    if (submission.status !== 'pendiente') {
+      return res.status(400).json({ error: 'Solo se pueden cancelar propuestas pendientes' });
+    }
+
+    const [updateResult] = await connection.execute(
+      'UPDATE submissions SET status = ? WHERE id = ? AND status = ?',
+      ['cancelada', submissionId, 'pendiente']
+    );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(400).json({ error: 'No se pudo cancelar la propuesta' });
+    }
+
+    // Devolver el token al artista
+    await connection.execute(
+      'UPDATE users SET tokens = LEAST(tokens + 1, 10) WHERE id = ?',
+      [artistId]
+    );
+
+    return res.status(200).json({
+      message: 'Propuesta cancelada: se devolvió 1 token',
+      submissionId
+    });
+  } catch (error) {
+    console.error('Error al cancelar propuesta:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  } finally {
+    connection.release();
+  }
+};
+
 // Listar mis propuestas como artista
 const listMySubmissions = async (req, res) => {
   try {
     const userId = req.user.id;
     const rows = await executeQuery(
-      `SELECT s.id, s.track_url, s.track_name, s.status, s.spotify_synced, s.created_at, s.updated_at,
+      `SELECT s.id, s.track_url, s.track_name, s.comment, s.status, s.spotify_synced, s.created_at, s.updated_at,
               p.name AS playlist_name, h.username AS handled_by_name
        FROM submissions s
        JOIN playlists p ON p.id = s.playlist_id
@@ -392,7 +439,7 @@ const listCuratorSubmissions = async (req, res) => {
   try {
     const userId = req.user.id;
     const rows = await executeQuery(
-      `SELECT s.id, s.track_url, s.track_name, s.status, s.spotify_synced, s.created_at, s.updated_at,
+      `SELECT s.id, s.track_url, s.track_name, s.comment, s.status, s.spotify_synced, s.created_at, s.updated_at,
               p.name AS playlist_name, u.username AS artist, h.username AS handled_by_name
        FROM submissions s
        JOIN playlists p ON p.id = s.playlist_id
@@ -410,4 +457,4 @@ const listCuratorSubmissions = async (req, res) => {
   }
 };
 
-module.exports = { submitSong, acceptSubmission, rejectSubmission, listMySubmissions, listCuratorSubmissions };
+module.exports = { submitSong, acceptSubmission, rejectSubmission, cancelSubmission, listMySubmissions, listCuratorSubmissions };

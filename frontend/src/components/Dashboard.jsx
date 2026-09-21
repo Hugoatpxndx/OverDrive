@@ -23,6 +23,7 @@ const Dashboard = () => {
   // Formularios
   const [trackUrl, setTrackUrl] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState('');
+  const [comment, setComment] = useState('');
   const [plName, setPlName] = useState('');
   const [plUrl, setPlUrl] = useState('');
   const [plFollowers, setPlFollowers] = useState('');
@@ -145,7 +146,8 @@ const Dashboard = () => {
     try {
       const res = await api.post('/api/submissions', {
         trackUrl,
-        playlistId: parseInt(selectedPlaylist, 10)
+        playlistId: parseInt(selectedPlaylist, 10),
+        comment: comment || undefined
       });
       showToast(
         '¡Canción enviada!',
@@ -153,6 +155,7 @@ const Dashboard = () => {
         'success'
       );
       setTrackUrl('');
+      setComment('');
       loadAll();
     } catch (err) {
       showToast(
@@ -268,6 +271,17 @@ const Dashboard = () => {
     }
   };
 
+  const handleCancel = async (id) => {
+    if (!window.confirm('¿Cancelar este envío? Se te devolverá el token.')) return;
+    try {
+      await api.post(`/submissions/${id}/cancel`);
+      showToast('Envío cancelado', 'Token devuelto.', 'success');
+      loadAll();
+    } catch (error) {
+      showToast('Error al cancelar', error.response?.data?.error || 'Error al cancelar', 'error');
+    }
+  };
+
   const pendingIncoming = incoming.filter((s) => s.status === 'pendiente').length;
 
   // Extrae el ID del track de una URL de Spotify (open.spotify.com/track/XXXX)
@@ -292,7 +306,7 @@ const Dashboard = () => {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'America/Monterrey'
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
   };
 
@@ -521,6 +535,14 @@ const Dashboard = () => {
               required
               pattern="https?://open\.spotify\.com/track/[a-zA-Z0-9]+(\?[a-zA-Z0-9&=._%+-]*)?"
             />
+            <textarea
+              name="comment"
+              placeholder="Comentario (opcional)..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={2}
+              style={{width: '100%', padding: '8px 12px', border: '1px solid var(--accent)', borderRadius: '6px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.95rem', resize: 'vertical'}}
+            />
             <button type="submit" disabled={!user?.tokens}>
               Enviar (cuesta 1 token)
             </button>
@@ -542,6 +564,15 @@ const Dashboard = () => {
                     <span className={`badge badge-${s.status}`}>{s.status}</span>
                     {s.spotify_synced === 1 && (
                       <span className="badge badge-sync">♫ Agregada a Spotify</span>
+                    )}
+                    {s.comment && <p style={{margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic'}}>&quot;{s.comment}&quot;</p>}
+                    {s.status === 'pendiente' && (
+                      <button
+                        onClick={() => handleCancel(s.id)}
+                        style={{background: 'var(--error)', color: '#fff', fontSize: '0.8rem', padding: '4px 10px', marginTop: 6, border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+                      >
+                        Cancelar envío
+                      </button>
                     )}
                     <span className="submission-date">📅 {formatDate(s.created_at)}</span>
                     {s.status !== 'pendiente' && s.handled_by_name && (
@@ -646,6 +677,7 @@ const Dashboard = () => {
                         </span>
                       </div>
                       <div className="submission-date">📅 Enviada el {formatDate(s.created_at)}</div>
+                      {s.comment && <p style={{margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic'}}>&quot;{s.comment}&quot;</p>}
                       {s.status !== 'pendiente' && s.handled_by_name && (
                         <div className="submission-date">
                           {s.status === 'aprobada' ? '✔ Aceptada' : '✖ Rechazada'} por {s.handled_by_name} · {formatDate(s.updated_at)}

@@ -9,6 +9,7 @@ module.exports = {
     'middlewares/**/*.js',
     '!tests/**'
   ],
+  coverageReporters: ['text', 'lcov', 'json'],
   coverageThreshold: {
     global: {
       branches: 65,

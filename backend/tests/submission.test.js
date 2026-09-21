@@ -38,6 +38,11 @@ jest.mock('../config/db', () => {
             const user = dbState.users.find((u) => u.id === params[0]);
             return [user ? [user] : []];
           }
+          // SELECT de submission por id (para cancelar)
+          if (sql.includes('SELECT id, status, artist_id FROM submissions WHERE id')) {
+            const sub = dbState.submissions.find((s) => s.id === params[0]);
+            return [sub ? [sub] : []];
+          }
           // SELECT de playlist por id
           if (sql.includes('SELECT id, user_id FROM playlists')) {
             const pl = dbState.playlists.find((p) => p.id === params[0]);
@@ -85,9 +90,16 @@ jest.mock('../config/db', () => {
               spotify_refresh_token: 'rf_curator'
             }]];
           }
-          // UPDATE de submissions (marcar aprobada/rechazada)
+          // UPDATE de submissions (marcar aprobada/rechazada/cancelada)
           if (sql.includes('UPDATE submissions SET status')) {
-            const sub = dbState.submissions.find((s) => s.id === params[2]);
+            // Cancelación: params = [status, id, status] (3 params)
+            // Rechazar: params = [status, handled_by, id, status] (4 params)
+            // Aceptar: params = [status, handled_by, spotify_synced, id, status] (5 params)
+            let subId;
+            if (params.length === 3) subId = params[1];       // cancel
+            else if (params.length === 4) subId = params[2];  // reject
+            else subId = params[3];                             // accept
+            const sub = dbState.submissions.find((s) => s.id === subId);
             if (sub && sub.status === 'pendiente') {
               sub.status = params[0];
               return [{ affectedRows: 1 }];
@@ -107,22 +119,15 @@ jest.mock('../config/db', () => {
               }));
             return [artistSubs];
           }
-          // INSERT de submission (simula constraint UNIQUE para duplicados)
+          // INSERT de submission
           if (sql.includes('INSERT INTO submissions')) {
-            const duplicate = dbState.submissions.some(
-              (s) => s.track_url === params[2] && s.playlist_id === params[1]
-            );
-            if (duplicate) {
-              const err = new Error('Duplicate entry');
-              err.code = 'ER_DUP_ENTRY';
-              throw err;
-            }
             const sub = {
               id: dbState.nextSubId++,
               artist_id: params[0],
               playlist_id: params[1],
               track_url: params[2],
-              track_name: params[3]
+              track_name: params[3],
+              comment: params[4] || null
             };
             dbState.submissions.push(sub);
             return [{ insertId: sub.id, affectedRows: 1 }];
@@ -308,7 +313,7 @@ describe('Envío de Canciones (Modo Artista)', () => {
     expect(response.status).toBe(400);
   });
 
-  test('Debe rechazar envío duplicado del mismo track a la misma playlist (409)', async () => {
+  test('Debe permitir reenviar la misma canción a la misma playlist', async () => {
     // Inyectar una submission previa del artista 3 a la playlist 1
     dbState.submissions.push({
       id: 100,
@@ -319,6 +324,9 @@ describe('Envío de Canciones (Modo Artista)', () => {
       status: 'pendiente'
     });
 
+    // Dar tokens al artista para el segundo envío
+    dbState.users.find((u) => u.id === 3).tokens = 2;
+
     const token = createToken(3, 'usuario');
     const response = await request(app)
       .post('/api/submissions')
@@ -328,8 +336,25 @@ describe('Envío de Canciones (Modo Artista)', () => {
         playlistId: 1
       });
 
-    expect(response.status).toBe(409);
-    expect(response.body.error).toContain('ya fue enviada');
+    expect(response.status).toBe(201);
+    expect(response.body.message).toBe('Canción enviada exitosamente');
+  });
+
+  test('Debe aceptar envío con comentario', async () => {
+    dbState.users.find((u) => u.id === 3).tokens = 2;
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        trackUrl: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+        playlistId: 1,
+        trackName: 'Mi nueva canción',
+        comment: 'Es un tema de rock alternativo, espero que les guste'
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.message).toBe('Canción enviada exitosamente');
   });
 
   test('Debe rechazar envío si el track NO existe en Spotify (400) sin gastar token', async () => {
@@ -635,6 +660,98 @@ describe('Listar Mis Propuestas (Artista)', () => {
     const token = createToken(3, 'usuario');
     const response = await request(app)
       .get('/api/submissions')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(500);
+  });
+});
+
+describe('Cancelar Envío (Modo Artista)', () => {
+  beforeEach(() => {
+    dbState.users = [
+      { id: 1, username: 'admin', tokens: 10, role: 'administrador', email_verified: 1 },
+      { id: 2, username: 'curator1', tokens: 5, role: 'usuario', email_verified: 1 },
+      { id: 3, username: 'artist1', tokens: 1, role: 'usuario', email_verified: 1 }
+    ];
+    dbState.playlists = [
+      { id: 1, user_id: 2, spotify_id: 'playlistA', name: 'Vibraciones', followers: 1200 }
+    ];
+    dbState.submissions = [
+      {
+        id: 1,
+        artist_id: 3,
+        playlist_id: 1,
+        track_url: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+        track_name: 'Mi canción',
+        status: 'pendiente'
+      },
+      {
+        id: 2,
+        artist_id: 3,
+        playlist_id: 1,
+        track_url: 'https://open.spotify.com/track/7aBcDef12345',
+        track_name: 'Ya procesada',
+        status: 'aprobada'
+      }
+    ];
+    dbState.nextSubId = 3;
+  });
+
+  test('El artista cancela una propuesta pendiente y recupera el token', async () => {
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/1/cancel')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toContain('cancelada');
+    expect(response.body.message).toContain('token');
+    expect(dbState.users.find((u) => u.id === 3).tokens).toBe(2);
+    expect(dbState.submissions.find((s) => s.id === 1).status).toBe('cancelada');
+  });
+
+  test('Debe rechazar cancelar una propuesta que no es del artista', async () => {
+    const token = createToken(2, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/1/cancel')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
+  });
+
+  test('Debe rechazar cancelar una propuesta ya procesada', async () => {
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/2/cancel')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain('pendientes');
+  });
+
+  test('Debe devolver 404 si la propuesta no existe', async () => {
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/999/cancel')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(404);
+  });
+
+  test('Debe devolver 400 con ID inválido', async () => {
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/abc/cancel')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(400);
+  });
+
+  test('Debe devolver 500 si falla la base de datos al cancelar', async () => {
+    dbState.failNextError = true;
+    const token = createToken(3, 'usuario');
+    const response = await request(app)
+      .post('/api/submissions/1/cancel')
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(500);

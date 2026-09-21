@@ -151,6 +151,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Descargar reporte de cobertura
+        uses: actions/download-artifact@v5
+        with:
+          name: coverage-report
+          path: backend/coverage/
+
       - name: Comprobar si SonarQube está configurado
         id: sonar-config
         env:

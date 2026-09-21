@@ -5,6 +5,7 @@ const {
   submitSong,
   acceptSubmission,
   rejectSubmission,
+  cancelSubmission,
   listMySubmissions,
   listCuratorSubmissions
 } = require('../controllers/submissionController');
@@ -34,6 +35,12 @@ router.post(
       .trim()
       .isLength({ max: 200 })
       .withMessage('Nombre de track demasiado largo')
+      .escape(),
+    body('comment')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Comentario demasiado largo')
       .escape()
   ],
   (req, res, next) => {
@@ -82,6 +89,22 @@ router.post(
     next();
   },
   rejectSubmission
+);
+
+// POST /api/submissions/:id/cancel - Cancelar envío (Modo Artista)
+router.post(
+  '/:id/cancel',
+  [
+    param('id').isInt({ min: 1 }).withMessage('ID de propuesta inválido')
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  },
+  cancelSubmission
 );
 
 module.exports = router;

@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS submissions (
   playlist_id   INT UNSIGNED NOT NULL,
   track_url     VARCHAR(500) NOT NULL,
   track_name    VARCHAR(200),
-  status        ENUM('pendiente','aprobada','rechazada') NOT NULL DEFAULT 'pendiente',
+  comment       VARCHAR(500) NULL,
+  status        ENUM('pendiente','aprobada','rechazada','cancelada') NOT NULL DEFAULT 'pendiente',
   token_cost    SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   handled_by    INT UNSIGNED NULL,
@@ -81,8 +82,8 @@ CREATE TABLE IF NOT EXISTS submissions (
     REFERENCES playlists(id)    ON DELETE CASCADE,
   CONSTRAINT fk_submissions_handled FOREIGN KEY (handled_by)
     REFERENCES users(id)        ON DELETE SET NULL,
-  -- Integridad: impedir envíos duplicados del mismo track a la misma playlist
-  CONSTRAINT uq_track_playlist UNIQUE (track_url, playlist_id)
+  -- Permitir enviar el mismo track a la misma playlist (reenvíos)
+  -- Cada envío es una propuesta independiente con su propio estado
 ) ENGINE=InnoDB;
 
 -- Índices para búsquedas frecuentes
