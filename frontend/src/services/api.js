@@ -1,8 +1,11 @@
 import axios from 'axios';
 
 // Instancia central de axios con la URL base del backend
+// En producción (Docker/nginx), las peticiones se hacen al mismo origen
+// En desarrollo local, se usa VITE_API_URL o http://localhost:4000
+const isProd = import.meta.env.PROD;
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
+  baseURL: import.meta.env.VITE_API_URL || (isProd ? '' : 'http://localhost:4000'),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'

@@ -274,7 +274,7 @@ const Dashboard = () => {
   const handleCancel = async (id) => {
     if (!window.confirm('¿Cancelar este envío? Se te devolverá el token.')) return;
     try {
-      await api.post(`/submissions/${id}/cancel`);
+      await api.post(`/api/submissions/${id}/cancel`);
       showToast('Envío cancelado', 'Token devuelto.', 'success');
       loadAll();
     } catch (error) {
