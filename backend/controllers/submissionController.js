@@ -112,9 +112,10 @@ const submitSong = async (req, res) => {
     // si la canción no existe, se rechaza el envío ANTES de gastar el token.
     // Si la API falla por red/config, el envío continúa (soft fail) para no
     // bloquear el flujo en entornos sin conexión a Spotify.
+    let trackInfoFromSpotify = null;
     if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
       try {
-        await spotify.getTrackApp(spotifyTrackId);
+        trackInfoFromSpotify = await spotify.getTrackApp(spotifyTrackId);
       } catch (trackErr) {
         // Spotify responde 404 (no existe) o 400 (id inválido) cuando la
         // canción no está en su catálogo. Solo esas respuestas se rechazan.
@@ -139,9 +140,11 @@ const submitSong = async (req, res) => {
     }
 
     // Insertar la submission usando prepared statement
+    // Si el artista no mandó trackName, usar el nombre obtenido de Spotify
+    const finalTrackName = trackName || (trackInfoFromSpotify ? trackInfoFromSpotify.name : '');
     const [insertResult] = await connection.execute(
       'INSERT INTO submissions (artist_id, playlist_id, track_url, track_name) VALUES (?, ?, ?, ?)',
-      [artistId, playlistId, cleanTrackUrl, trackName]
+      [artistId, playlistId, cleanTrackUrl, finalTrackName]
     );
 
     // Obtener el estado actualizado de tokens

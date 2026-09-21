@@ -102,6 +102,7 @@ const Dashboard = () => {
       setIncoming(incRes.data.submissions || []);
       enrichIncoming(incRes.data.submissions || []);
       setMySubmissions(subRes.data.submissions || []);
+      enrichMySubmissions(subRes.data.submissions || []);
       setUsers(usersRes.data.users || []);
       await refreshUser(); // sincroniza el contador de tokens con la BD
     } catch (err) {
@@ -282,14 +283,16 @@ const Dashboard = () => {
   // Formatea una fecha (ISO/DB) como "20 sep 2026 23:54"
   const formatDate = (value) => {
     if (!value) return '';
-    const d = new Date(value);
+    const iso = value.includes('T') ? value : value.replace(' ', 'T') + 'Z';
+    const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleString('es-MX', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/Monterrey'
     });
   };
 
@@ -312,6 +315,34 @@ const Dashboard = () => {
       })
     );
     enrichedRef.current = new Set([...enrichedRef.current, ...pending.map((s) => s.id)]);
+    setTrackInfo((prev) => {
+      const next = { ...prev };
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value && r.value.info) {
+          next[r.value.id] = r.value.info;
+        }
+      }
+      return next;
+    });
+  };
+
+  // Enriquece los envíos del artista con nombre y artista desde Spotify
+  const enrichMySubmissions = async (list) => {
+    if (!list || list.length === 0) return;
+    const pending = list.filter((s) => !enrichedRef.current.has(`my_${s.id}`));
+    if (pending.length === 0) return;
+    const results = await Promise.allSettled(
+      pending.map(async (s) => {
+        const trackId = extractTrackId(s.track_url);
+        if (!trackId) return { id: s.id, info: null };
+        const res = await api.get(`/api/spotify/track/${trackId}`);
+        return {
+          id: s.id,
+          info: { name: res.data.name, artist: (res.data.artists || []).join(', ') }
+        };
+      })
+    );
+    enrichedRef.current = new Set([...enrichedRef.current, ...pending.map((s) => `my_${s.id}`)]);
     setTrackInfo((prev) => {
       const next = { ...prev };
       for (const r of results) {
@@ -501,7 +532,12 @@ const Dashboard = () => {
               <ul className="lista">
                 {mySubmissions.map((s) => (
                   <li key={s.id}>
-                    <a href={s.track_url} target="_blank" rel="noopener noreferrer">{s.track_name || s.track_url}</a>
+                    <a href={s.track_url} target="_blank" rel="noopener noreferrer">
+                      {trackInfo[s.id]?.name || s.track_name || 'Track de Spotify'}
+                    </a>
+                    {trackInfo[s.id]?.artist && (
+                      <span className="submission-artist"> · {trackInfo[s.id].artist}</span>
+                    )}
                     {' → '}{s.playlist_name}
                     <span className={`badge badge-${s.status}`}>{s.status}</span>
                     {s.spotify_synced === 1 && (
