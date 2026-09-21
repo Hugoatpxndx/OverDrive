@@ -8,6 +8,8 @@ const jwt = require('jsonwebtoken');
 
 process.env.JWT_SECRET = 'test_secret_secure';
 process.env.JWT_EXPIRES_IN = '1h';
+process.env.SPOTIFY_CLIENT_ID = 'test_client_id';
+process.env.SPOTIFY_CLIENT_SECRET = 'test_client_secret';
 
 // Mock de la capa de BD con un estado simulado simple
 const dbState = {
