@@ -1,0 +1,111 @@
+# ============================================================
+# OverDrive - Render Blueprint
+# Define los 3 servicios: Base de Datos, Backend y Frontend.
+#
+# Cómo usarlo:
+#   1. Ve a https://dashboard.render.com/new → Blueprint
+#   2. Conecta el repo Hugoatpxndx/OverDrive
+#   3. Render detecta este render.yaml y crea todo automáticamente
+#   4. Configura los campos marcados como "sync: false" en cada servicio
+#
+# DATABASES: Render NO ofrece MariaDB gestionado. Este blueprint levanta
+# MariaDB como un servicio Docker con disco persistente.
+#   * El disco requiere un plan de pago (free no permite discos).
+#   * Alternativa 100% gratis: usa una MariaDB externa (ver docs/).
+# ============================================================
+
+services:
+  # ==========================================================
+  # Base de datos MariaDB (Docker service)
+  # ==========================================================
+  - type: web
+    name: overdrive-db
+    runtime: docker
+    plan: starter
+    image:
+      url: mariadb:11
+    healthCheckPath: /
+    envVars:
+      - key: MARIADB_ROOT_PASSWORD
+        value: 2010
+      - key: MARIADB_DATABASE
+        value: overdrive
+      - key: MARIADB_USER
+        value: overdrive_user
+      - key: MARIADB_PASSWORD
+        value: 2010
+      - key: MARIADB_ROOT_HOST
+        value: "%"
+    disk:
+      name: overdrive-db-data
+      mountPath: /var/lib/mysql
+      sizeGB: 1
+
+  # ==========================================================
+  # Backend - Web Service (Node)
+  # start se encarga de inicializar la BD + arrancar Express
+  # ==========================================================
+  - type: web
+    name: overdrive-backend
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: cd backend && npm ci
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        fromService:
+          type: web
+          name: overdrive-db
+          property: host
+      - key: DB_PORT
+        fromService:
+          type: web
+          name: overdrive-db
+          property: port
+      - key: DB_USER
+        value: overdrive_user
+      - key: DB_PASSWORD
+        value: 2010
+      - key: DB_NAME
+        value: overdrive
+      - key: PORT
+        value: 10000
+      # ⚠️ CONFIGURA ESTOS EN EL DASHBOARD (Settings → Env Vars):
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: SPOTIFY_REDIRECT_URI
+        sync: false
+
+  # ==========================================================
+  # Frontend - Static Site (React + Vite)
+  # Al build se inyecta VITE_API_URL con la URL del backend
+  # ==========================================================
+  - type: web
+    name: overdrive-frontend
+    runtime: static
+    plan: free
+    branch: main
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # ⚠️ Define VITE_API_URL = https://tusubdominio.onrender.com (del backend)
+      - key: VITE_API_URL
+        sync: false
