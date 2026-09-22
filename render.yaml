@@ -16,15 +16,17 @@
 
 services:
   # ==========================================================
-  # Base de datos MariaDB (Docker service)
+  # Base de datos MariaDB
   # ==========================================================
   - type: web
     name: overdrive-db
-    runtime: docker
+    runtime: image
     plan: starter
     image:
       url: mariadb:11
-    healthCheckPath: /
+    # MariaDB no expone HTTP: sin healthCheckPath (Render lo considera
+    # sano mientras el proceso corra). El backend inicializa el esquema.
+    healthCheckPath: null
     envVars:
       - key: MARIADB_ROOT_PASSWORD
         value: 2010
