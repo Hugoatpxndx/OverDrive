@@ -14,6 +14,27 @@
 - **Respuesta exitosa**: Token JWT devuelto + datos del usuario
 - **Comportamiento**: Almacenamiento en caché desactivado (`Cache-Control: no-store`) para datos sensibles
 
+> 📷 **Captura 1** — Página de login. Se muestra en pantalla al hablar del módulo
+> de registro (Bl1).
+>
+> ![Página de login](Docs/capturas/01-login.png)
+>
+> **Tomarla de**: producción → `/login` (o local: `http://localhost:5173/login`).
+
+> 📷 **Captura 2** — Página de registro (validación de contraseña visible).
+> Se muestra al explicar la validación fuerte de password (Bl1).
+>
+> ![Página de registro](Docs/capturas/02-registro.png)
+>
+> **Tomarla de**: producción → `/register`.
+
+> 📷 **Captura 3** — Login con las credenciales del admin ya escritas,
+> justo antes de pulsar «Iniciar sesión» (Bl1).
+>
+> ![Login admin completado](Docs/capturas/03-login-llenado.png)
+>
+> **Tomarla de**: producción → `/login` → escribir `admin@overdrive.app`.
+
 ### 1.2 Autenticación con JWT y Manejo de Roles
 - **JWT Secret**: Configurado en `backend/.env` (`Pxndx`)
 - **Expiración**: 1 hora (`JWT_EXPIRES_IN=1h`)
@@ -40,6 +61,22 @@
   - Control de roles (middleware `isAdmin`)
   - Rate limiting en endpoints de auth
   - Validación de JWT (token inválido, sin token, sin prefijo Bearer)
+
+> 📷 **Captura 4** — Dispositivo o ventana de terminal con `cd backend && npm test`
+> mostrando «94 tests passing, coverage 85%». Se muestra en vivo o como captura al
+> cerrar el bloque de pruebas (Bl1).
+>
+> ![94 tests passing - cobertura 85%](Docs/capturas/04-npm-test.png)
+>
+> **Tomarla de**: ejecutar `cd backend && npm test` en tu terminal y capturar.
+> *(Opción en vivo: simplemente ejecutarlo durante la demo sin necesidad de captura.)*
+
+> 📷 **Captura 5** — Dashboard de administrador (tabla de usuarios, roles y
+> tokens del panel de admin). Evidencia del control de roles (Bl1).
+> ![Dashboard admin - panel de administración](Docs/capturas/05-dashboard-admin.png)
+>
+> **Tomarla de**: producción → login admin → `/dashboard` → sección
+> «Panel de Administración».
 
 ---
 
@@ -90,6 +127,23 @@ Ejemplo del flujo completo:
 - **Nota Spotify**: la app está en *development mode* → solo las cuentas
   agregadas en Spotify for Developers → *Users and access* pueden conectar OAuth.
 
+> 📷 **Captura 6** — Dashboard del pipeline en GitHub Actions (repos → Actions →
+> última ejecución en verde con los 6 jobs). Evidencia de CI/CD (Bl2).
+>
+> ![GitHub Actions - 6 jobs en verde](Docs/capturas/10-github-actions.png)
+>
+> **Tomarla de**: repositorio en GitHub → pestaña **Actions** → abrir el run más
+> reciente de `main` y capturar el árbol de jobs en verde.
+> *(Necesita tu login de GitHub; no se automatizó.)*
+
+> 📷 **Captura 7** — Health check de la API desplegada respondiendo
+> `{"status":"ok"}` en el navegador. Cierra la demostración de deploy (Bl2).
+>
+> ![Health check producción](Docs/capturas/08-health-check.png)
+>
+> **Tomarla de**: abrir `https://overdrive-production-1392.up.railway.app/api/health`
+> (ya generada y subida al repo).
+
 ---
 
 ## Bloque 3: Pruebas de Seguridad y Calidad de Código (3 min)
@@ -102,6 +156,14 @@ Ejemplo del flujo completo:
   - `zap-report.json` (reporte JSON estructurado)
 - **Modo ignorado**: `-I` para advertencias no críticas, solo fallos reales
 - **Ejecutado en**: GitHub Actions job `zap-scan`
+
+> 📷 **Captura 8** — Reporte HTML de OWASP ZAP con el resumen de la alertas
+> (0 FAIL / 66 PASS). Evidencia de seguridad (Bl3).
+>
+> ![Reporte OWASP ZAP](Docs/capturas/09-zap-report.png)
+>
+> **Tomarla de**: abrir `Docs/zap-report.html` en el navegador y capturar el
+> encabezado/resumen (ya generada y subida al repo).
 
 ### 3.2 Resultados y Corrección de Vulnerabilidades
 | Vulnerabilidad | Estado | Acción |
@@ -135,6 +197,16 @@ SonarQube Quality Gate - Estado actual:
 ```
 - **Reporte LCOV**: `backend/coverage/lcov.info` utilizado para integrar con SonarQube
 - **Análisis ejecutado**: Mediante script `scripts/analisis-calidad.sh` (usa Docker + SonarQube scanner)
+
+> 📷 **Captura 9** — Dashboard de SonarQube (`/dashboard?id=overdrive`) con el
+> **Quality Gate OK** y las métricas (bugs 0, vuln 0, ratings A/A/A).
+> Evidencia de calidad de código (Bl3).
+>
+> ![Dashboard SonarQube](Docs/capturas/11-sonarqube.png)
+>
+> **Tomarla de**: `./scripts/analisis-calidad.sh` y abrir
+> `http://localhost:9000/dashboard?id=overdrive` (login `admin / Overdrive2026!`).
+> *(Necesita Docker corriendo; no se automatizó.)*
 
 ---
 
@@ -272,12 +344,30 @@ SPOTIFY_CLIENT_SECRET=a54fe696ab9b4e0c9d27735d0ed2851e
 
 ### Capturas de pantalla recomendadas para la presentación:
 
-1. **Terminal**: `npm test` mostrando "94 tests passing, coverage 85%"
-2. **GitHub Actions**: Job `backend-tests` verde con artifacts de cobertura
-3. **Railway dashboard**: 1 servicio (web) verde + plugin `overdrive-db` (MaríaDB)
-4. **Producción**: `https://overdrive-production-1392.up.railway.app` funcionando
-5. **SonarQube dashboard**: Métricas de calidad y cobertura
-6. **ZAP report**: HTML mostrando "0 alertas" o solo advertencias no críticas
+1. **Terminal**: `npm test` mostrando "94 tests passing, coverage 85%" — **Captura 4**
+2. **GitHub Actions**: Job `backend-tests` verde con artifacts de cobertura — **Captura 6**
+3. **Railway dashboard**: 1 servicio (web) verde + plugin `overdrive-db` (MaríaDB) — **(opcional)**
+4. **Producción**: `https://overdrive-production-1392.up.railway.app` funcionando — **Capturas 7 (health) y 1-3,5**
+5. **SonarQube dashboard**: Métricas de calidad y cobertura — **Captura 9**
+6. **ZAP report**: HTML mostrando "0 alertas" o solo advertencias no críticas — **Captura 8**
+
+### Índice de capturas por bloque
+
+| Bloque | Captura | Archivo | Uso recomendado |
+|---|---|---|---|
+| Bl 1 · Módulo | 1 | `Docs/capturas/01-login.png` | demo del login |
+| Bl 1 · Módulo | 2 | `Docs/capturas/02-registro.png` | validación de contraseña |
+| Bl 1 · Módulo | 3 | `Docs/capturas/03-login-llenado.png` | login admin |
+| Bl 1 · Pruebas | 4 | `Docs/capturas/04-npm-test.png` | 94 tests / cobertura 85% |
+| Bl 1 · Roles | 5 | `Docs/capturas/05-dashboard-admin.png` | panel admin / roles |
+| Bl 2 · CI/CD | 6 | `Docs/capturas/10-github-actions.png` | pipeline verde (manual) |
+| Bl 2 · Deploy | 7 | `Docs/capturas/08-health-check.png` | API en producción |
+| Bl 3 · Seguridad | 8 | `Docs/capturas/09-zap-report.png` | OWASP ZAP 0 FAIL |
+| Bl 3 · Calidad | 9 | `Docs/capturas/11-sonarqube.png` | Quality Gate OK (manual) |
+
+> **Para completar capturas manuales** (6 y 9): ver instrucciones junto a cada
+> captura arriba. Las capturas 1–5, 7 y 8 ya están generadas y subidas en
+> `Docs/capturas/`.
 
 ---
 *Proyecto OverDrive - Ingeniería de Software - Presentación Individual*

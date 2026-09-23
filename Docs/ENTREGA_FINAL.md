@@ -62,6 +62,16 @@ React (Vite) ──HTTP──▶ Express (Node 22) ──prepared statements─�
 (helmet + sanitización A07), fuerza bruta (rate-limit A07), contraseñas expuestas
 (bcrypt A02), información filtrada en errores y payloads gigantes (A05).
 
+**Pantallas del módulo** (login, registro y panel de administración):
+
+| Login | Registro |
+|---|---|
+| ![Login](capturas/01-login.png) | ![Registro](capturas/02-registro.png) |
+
+| Login admin completado | Panel de administración |
+|---|---|
+| ![Login admin](capturas/03-login-llenado.png) | ![Panel admin](capturas/05-dashboard-admin.png) |
+
 ## 1.4 Evidencia de pruebas unitarias (cobertura ≥ 80 %)
 
 Ejecutado con: `cd backend && npm test` (Jest + Supertest).
@@ -79,6 +89,8 @@ Ejecutado con: `cd backend && npm test` (Jest + Supertest).
 > si no se cumplen. Cobertura medida sobre `controllers/` y `middlewares/`
 > (lógica de negocio).
 
+![Evidencia de 94 tests y cobertura 85%](capturas/04-npm-test.png)
+
 **Cobertura funcional del módulo** (test suite):
 - Registro de nuevo usuario, login de administrador.
 - Control de roles (middleware `isAdmin`, 401 sin permiso).
@@ -87,6 +99,22 @@ Ejecutado con: `cd backend && npm test` (Jest + Supertest).
 - Envío/aceptación/rechazo de propuestas, tokens atómicos y reglas
   anti-fraude (duplicado 409 con reembolso).
 - Verificación de email y validación de tracks contra Spotify (mockeada).
+
+### 📷 Capturas del Criterio 1 (dónde van)
+
+| # | Archivo | Ubicación en el reporte / uso |
+|---|---|---|
+| 1 | `capturas/01-login.png` | Junto al apartado 1.3 (módulo de autenticación): muestra el login. |
+| 2 | `capturas/02-registro.png` | Apartado 1.3 (registro con validación de contraseña). |
+| 3 | `capturas/03-login-llenado.png` | Apartado 1.3: login con credenciales admin. |
+| 4 | `capturas/04-npm-test.png` | Apartado 1.4 (evidencia de pruebas): 94/94 tests y cobertura ≥ 80 %. |
+| 5 | `capturas/05-dashboard-admin.png` | Apartado 1.3 (roles): panel de administración con tabla de usuarios. |
+
+> Las capturas 1–5 ya están versionadas en la carpeta `Docs/capturas/`.
+> Para insertarlas en este documento (al convertirlo a PDF) basta escribir:
+> ```markdown
+> ![Login](capturas/01-login.png)
+> ```
 
 ---
 
@@ -139,6 +167,8 @@ git push origin main
 | Aplicación (frontend + API) | `https://overdrive-production-1392.up.railway.app` |
 | Health check | `https://overdrive-production-1392.up.railway.app/api/health` |
 
+![Health check en producción](capturas/08-health-check.png)
+
 **Variables de entorno en producción**: `MARIADB_USER/PASSWORD/DATABASE`
 (shared), `DB_HOST=overdrive-db.railway.internal`, `DB_PORT=3306`, `PORT=4000`,
 `JWT_SECRET`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`,
@@ -148,6 +178,15 @@ git push origin main
 > Nota Spotify: la app está en *development mode* → solo las cuentas agregadas
 > en **Users and access** de Spotify for Developers pueden conectar OAuth
 > (hasta 25 gratuitas).
+
+### 📷 Capturas del Criterio 2 (dónde van)
+
+| # | Archivo | Ubicación en el reporte / uso |
+|---|---|---|
+| 6 | `capturas/10-github-actions.png` | Apartado 2.2 (flujo automático): pipeline con los 6 jobs en verde. *(Manual: repositorio → Actions → último run de `main`.)* |
+| 7 | `capturas/08-health-check.png` | Apartado 2.3 (despliegue): health check `{"status":"ok"}` en producción. |
+
+> La captura 7 ya está versionada. La 6 requiere tu login de GitHub.
 
 ---
 
@@ -164,6 +203,8 @@ git push origin main
 | FAIL (riesgo alto) | **0** |
 | WARN | 1 |
 | PASS | 66 |
+
+![Reporte OWASP ZAP - 0 FAIL](capturas/09-zap-report.png)
 
 **Vulnerabilidad detectada y corregida**:
 - *Storable and Cacheable Content* (10049) → se añadió
@@ -208,6 +249,17 @@ de **2 → 0**.
 - **94/94 tests** pasando, cobertura statements **85 %** (umbral 80 %).
 - Lógica de negocio (controladores y middlewares) cubierta ≥ 80 %.
 - `npm audit --audit-level=high` sin hallazgos críticos en dependencias.
+
+### 📷 Capturas del Criterio 3 (dónde van)
+
+| # | Archivo | Ubicación en el reporte / uso |
+|---|---|---|
+| 8 | `capturas/09-zap-report.png` | Apartado 3.1 (OWASP ZAP): resumen del reporte con 0 FAIL / 66 PASS. |
+| 9 | `capturas/11-sonarqube.png` | Apartado 3.2 (SonarQube): Quality Gate OK y ratings A/A/A. *(Manual: `./scripts/analisis-calidad.sh` → `http://localhost:9000`.)* |
+| 4 | `capturas/04-npm-test.png` | Apartado 3.3: evidencia de pruebas automatizadas. |
+
+> La captura 8 ya está versionada. La 9 requiere tener Docker + SonarQube
+> corriendo localmente.
 
 ---
 
@@ -343,6 +395,28 @@ docker compose up -d --build
 - Repositorio Git con código, pipeline CI/CD y esta documentación.
 - Workflow: `.github/workflows/ci.yml`.
 - Dockerfile multi-stage en la raíz; `compose.yaml` para uso local.
+
+## Anexo D · Índice completo de capturas
+
+Carpeta: `Docs/capturas/` (versionada en el repositorio).
+
+| # | Archivo | Contenido | Criterio | Estado |
+|---|---|---|---|---|
+| 1 | `capturas/01-login.png` | Página de login | C1 | ✅ generada |
+| 2 | `capturas/02-registro.png` | Página de registro | C1 | ✅ generada |
+| 3 | `capturas/03-login-llenado.png` | Login con admin escrito | C1 | ✅ generada |
+| 4 | `capturas/04-npm-test.png` | 94 tests / cobertura 85 % | C1, C3 | ✅ generada |
+| 5 | `capturas/05-dashboard-admin.png` | Panel admin / roles | C1 | ✅ generada |
+| 6 | `capturas/06-dashboard-artista.png` | Dashboard modo artista | (opcional) | ✅ generada |
+| 7 | `capturas/07-conectar-spotify.png` | Conectar cuenta Spotify | (opcional) | ✅ generada |
+| 8 | `capturas/08-health-check.png` | Health check `{"status":"ok"}` | C2 | ✅ generada |
+| 9 | `capturas/09-zap-report.png` | Reporte OWASP ZAP (0 FAIL) | C3 | ✅ generada |
+| 10 | `capturas/10-github-actions.png` | Pipeline GHA con 6 jobs en verde | C2 | ⏳ manual (tu login) |
+| 11 | `capturas/11-sonarqube.png` | SonarQube Quality Gate OK | C3 | ⏳ manual (Docker local) |
+
+> Para el PDF (pandoc): mover las filas a las secciones indicadas en cada
+> apartado, o insertar directamente al final de cada criterio:
+> `![login](capturas/01-login.png)`
 
 ---
 
