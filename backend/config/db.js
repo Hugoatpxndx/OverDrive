@@ -4,9 +4,9 @@ const mysql = require('mysql2/promise');
 const pool = mysql.createPool({
   host: process.env.DB_HOST || process.env.MARIADB_HOST || 'localhost',
   port: process.env.DB_PORT || process.env.MARIADB_PORT || 3306,
-  user: process.env.DB_USER || process.env.MARIADB_USER || 'overdrive_user',
-  password: process.env.DB_PASSWORD || process.env.MARIADB_PASSWORD || '',
-  database: process.env.DB_NAME || process.env.MARIADB_DATABASE || 'overdrive',
+  user: process.env.MARIADB_USER || process.env.DB_USER || 'overdrive_user',
+  password: process.env.MARIADB_PASSWORD || process.env.DB_PASSWORD || '',
+  database: process.env.MARIADB_DATABASE || process.env.DB_NAME || 'overdrive',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
