@@ -16,60 +16,64 @@ No hace falta reconfigurar nada. También hay un botón **Redeploy** manual.
 
 ---
 
-## Opción recomendada: Railway (soporta MySQL)
+## Opción recomendada: Railway (un solo servicio)
 
-Railway es la opción más directa porque ofrece **MySQL gestionado**, que es el
-motor que usa OverDrive.
+> **Configuración real en producción (2026-09).** OverDrive se despliega como **UN
+> solo Web Service**: el backend sirve la API (`/api/*`) y el frontend compilado
+> (`frontend/dist`) en el mismo dominio. No hacen falta dos servicios ni CORS.
 
 ### Paso 1 · Cuenta y proyecto
 1. Entra a https://railway.app y crea una cuenta (login con GitHub).
 2. **New Project → Deploy from GitHub repo →** selecciona `OverDrive`.
-3. **New → Database → MySQL**. Railway crea la base y sus credenciales.
+3. **New → Database → MariaDB (MySQL)**. Railway crea la base y expone las
+   variables `MARIADB_USER`, `MARIADB_PASSWORD`, `MARIADB_DATABASE`.
 
-### Paso 2 · Servicio del backend
+### Paso 2 · Servicio (backend + frontend)
 1. En el proyecto: **New → GitHub Repo →** el mismo `OverDrive`.
-2. En ese servicio: **Settings → Root Directory = `backend`**.
-   Railway detecta el `Dockerfile` automáticamente.
-3. **Variables** (Settings → Variables), referenciando el MySQL:
+2. **Delete** los `Dockerfile` de `backend/` y `frontend/` (o renuévelos como
+   `Dockerfile.disabled`): **usa el `Dockerfile` raíz**, que compila ambos.
+3. **Settings**:
+   - **Root Directory**: *(vacío)*
+   - **Builder**: `Dockerfile` → **Dockerfile Path**: `/Dockerfile` (raíz)
+   - **Build Command**: *(vacío — el Dockerfile compila backend + frontend)*
+   - **Start Command**: *(vacío — el Dockerfile ejecuta `npm start`, que corre
+     `db-init.js` y levanta `server.js`)*
+   - **Healthcheck Path**: `/api/health`
+   - **Networking → Generate Service Domain** → **Target Port**: `4000`
+4. **Variables** (Settings → Variables):
 
 | Variable | Valor |
 |---|---|
-| `DB_HOST` | `${{MySQL.MYSQLHOST}}` |
-| `DB_PORT` | `${{MySQL.MYSQLPORT}}` |
-| `DB_USER` | `${{MySQL.MYSQLUSER}}` |
-| `DB_PASSWORD` | `${{MySQL.MYSQLPASSWORD}}` |
-| `DB_NAME` | `${{MySQL.MYSQLDATABASE}}` |
+| `MARIADB_USER` | *(añadida como shared, de la BD)* |
+| `MARIADB_PASSWORD` | *(añadida como shared, de la BD)* |
+| `MARIADB_DATABASE` | *(añadida como shared, de la BD)* |
+| `DB_HOST` | hostname privado de la BD, p. ej. `overdrive-db.railway.internal` |
+| `DB_PORT` | `3306` |
+| `PORT` | `4000` |
 | `JWT_SECRET` | una cadena larga y aleatoria |
-| `CORS_ORIGIN` | `https://<tu-frontend>.up.railway.app` |
+| `NODE_ENV` | `production` |
+| `CORS_ORIGIN` | `https://<tu-dominio>.up.railway.app` |
 | `SPOTIFY_CLIENT_ID` | tu Client ID |
 | `SPOTIFY_CLIENT_SECRET` | tu Client Secret |
-| `SPOTIFY_REDIRECT_URI` | `https://<tu-backend>.up.railway.app/api/spotify/callback` |
+| `SPOTIFY_REDIRECT_URI` | `https://<tu-dominio>.up.railway.app/api/spotify/callback` |
 
-4. **Settings → Deploy → Pre-deploy Command**: `npm run db:init`
-   (crea las tablas e inserta el admin; es idempotente).
-5. **Settings → Networking → Generate Domain** para obtener la URL pública.
+> ⚠️ El backend lee `MARIADB_USER/PASSWORD/DATABASE` **antes** que `DB_USER/...`;
+> el `$MARIADB_*` literal en una variable `DB_USER` NO se resuelve → no crees
+> aliases. `DB_HOST` sí se usa (hostname privado `.railway.internal`).
 
-### Paso 3 · Servicio del frontend
-1. **New → GitHub Repo →** `OverDrive` otra vez.
-2. **Settings → Root Directory = `frontend`**.
-3. **Build Command**: `npm ci && npm run build`
-4. **Start Command**: `npx vite preview --host 0.0.0.0 --port $PORT`
-5. **Variables**:
-
-| Variable | Valor |
-|---|---|
-| `VITE_API_URL` | `https://<tu-backend>.up.railway.app` |
-
-> `VITE_API_URL` se inyecta en **tiempo de build**; cámbiala antes de construir.
-
-### Paso 4 · Ajustes finales
-- En el **Dashboard de Spotify**, añade la Redirect URI de producción
-  (`https://<tu-backend>.up.railway.app/api/spotify/callback`).
-- Cambia la contraseña del admin tras el primer login.
+5. El `db-init.js` corre en el **arranque** (crea tablas, migraciones y admin;
+   idempotente) — no hace falta job por separado.
 
 ### Resultado
-- Frontend: `https://<tu-frontend>.up.railway.app`
-- Backend: `https://<tu-backend>.up.railway.app/api/health`
+- **App completa**: `https://<tu-dominio>.up.railway.app` (frontend + API)
+- Health check: `https://<tu-dominio>.up.railway.app/api/health`
+- Admin de demo: `admin@overdrive.app` / `8H8LrSK8qUhvuY7i6Ghs`
+
+### Paso 3 · Spotify
+- Añade la Redirect URI `https://<tu-dominio>.up.railway.app/api/spotify/callback`
+  en el **Dashboard de Spotify → Edit Settings → Redirect URIs**.
+- En **modo development**, agrega en **Users and access** los correos de las
+  cuentas que conectarán Spotify (hasta 25 gratis).
 
 ---
 

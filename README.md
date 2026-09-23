@@ -8,6 +8,22 @@ Plataforma web de **economía circular para músicos independientes**. Los usuar
 
 ---
 
+## 🌐 Demo en producción (Railway)
+
+> Acceso para evaluar la app sin instalarla: **todo corre en un único servicio** de
+> Railway (el backend sirve la API y el frontend React en el mismo dominio).
+
+| Recurso | URL |
+|---------|-----|
+| **App completa (frontend + API)** | **https://overdrive-production-1392.up.railway.app** |
+| Health check | https://overdrive-production-1392.up.railway.app/api/health |
+| Admin de demo | `admin@overdrive.app` / `8H8LrSK8qUhvuY7i6Ghs` |
+
+> ⚠️ **Spotify en modo development (Demo)**: como la app de Spotify no tiene
+> *Extended Quota Mode*, **solo las cuentas agregadas** en el Dashboard de Spotify →
+> *Users and access* pueden conectar su cuenta. Agrega los correos de prueba antes de
+> presentar. El envío/validación de tracks (token de aplicación) sí funciona para todos.
+
 ## 🏗️ Estructura del Monorepo
 
 ```
