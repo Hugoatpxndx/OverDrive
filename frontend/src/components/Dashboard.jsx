@@ -440,7 +440,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-card">
             <span className="stat-icon">🎤</span>
-            <span className="stat-value">{mySubmissions.length}</span>
+            <span className="stat-value">{mySubmissions.filter((s) => s.status !== 'cancelada').length}</span>
             <span className="stat-label">Mis envíos</span>
           </div>
         </div>
