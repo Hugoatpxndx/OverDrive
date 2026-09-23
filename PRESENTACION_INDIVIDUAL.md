@@ -162,8 +162,9 @@ Ejemplo del flujo completo:
 >
 > ![Reporte OWASP ZAP](Docs/capturas/09-zap-report.png)
 >
-> **Tomarla de**: abrir `Docs/zap-report.html` en el navegador y capturar el
-> encabezado/resumen (ya generada y subida al repo).
+> **Tomarla de**: abrir el artifact `zap-report` del job `zap-scan` en
+> GitHub Actions (Actions → última corrida → Download artifact) o re-correr
+> `docker run ... -r zap-report.html` localmente (ya generada y subida al repo).
 
 ### 3.2 Resultados y Corrección de Vulnerabilidades
 | Vulnerabilidad | Estado | Acción |
