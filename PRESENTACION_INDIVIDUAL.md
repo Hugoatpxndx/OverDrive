@@ -71,13 +71,24 @@ Ejemplo del flujo completo:
 - **Retention**: Reportes guardados 7 días en GitHub Actions
 - **Fallos controlados**: `npm ci` tiene reintentos (4 intentos con sleep 10s)
 
-### 2.3 Entorno de Despliegue
-- **Render.com** (plan free): 3 servicios (BD MariaDB, Backend Node, Frontend Static)
-- **Variables de entorno**: JWT_SECRET, CORS_ORIGIN, SPOTIFY_* configurables en dashboard
-- **Deploy automático**: `git push` → Render detecta cambio y despliega en 2-3 minutos
-- **URLs de demo**:
-  - Frontend: `https://overdrive-frontend.onrender.com`
-  - Backend API: `https://overdrive-backend.onrender.com`
+### 2.3 Entorno de Despliegue (Producción en Railway)
+- **Railway** (plan free): **1 solo servicio** que compila backend + frontend con un
+  `Dockerfile` multi-stage en la raíz; la BD es un **railway plugin** de MariaDB.
+- **Por qué un solo servicio**: el backend sirve el frontend compilado
+  (`frontend/dist`) en el mismo dominio → sin CORS cruzado ni variables
+  `VITE_API_URL`.
+- **Variables de entorno** en dashboard Railway: `MARIADB_USER/PASSWORD/DATABASE`
+  (compartidas), `DB_HOST` (`.railway.internal`), `DB_PORT=3306`, `PORT=4000`,
+  `JWT_SECRET`, `SPOTIFY_*`, `CORS_ORIGIN`.
+- **Inicialización de BD automática**: `npm start` ejecuta `db-init.js`
+  (schema + 5 migraciones + admin) antes de levantar el servidor.
+- **Deploy automático**: `git push origin main` → Railway reconstruye la imagen y
+  despliega en minutos (salud: `/api/health` → `{"status":"ok"}`).
+- **URL de producción**:
+  - App completa (frontend + API): `https://overdrive-production-1392.up.railway.app`
+  - Health check: `https://overdrive-production-1392.up.railway.app/api/health`
+- **Nota Spotify**: la app está en *development mode* → solo las cuentas
+  agregadas en Spotify for Developers → *Users and access* pueden conectar OAuth.
 
 ---
 
@@ -137,7 +148,7 @@ SonarQube Quality Gate - Estado actual:
 | **Cobertura de tests** | ≥ 80% | 85% (94/94 tests passing) | **+5% por encima** ✅ |
 | **Autenticación JWT** | Implementar roles admin/user | ✅ Fully implemented con middlewares `auth.js` | **Como se planeó** ✅ |
 | **CI/CD pipeline** | GitHub Actions con tests + deploy | ✅ 6 jobs configurados y funcionando | **Complete** ✅ |
-| **Despliegue en producción** | Render free tier | ✅ Configurado render.yaml, vercel.json listo | **Listo para deploy** ✅ |
+| **Despliegue en producción** | GitHub Actions + entorno público | ✅ Dockerfile multi-stage raíz + Railway (1 servicio, BD plugin) | **En producción** ✅ |
 | **Seguridad OWASP** | Helmet + CORS + Rate Limit | ✅ Los 3 implementados en server.js | **Como se planeó** ✅ |
 | **BD inicial** | Schema.sql + migrations | ✅ `db-init.js` ejecuta 5 migraciones condicionales | **Como se planeó** ✅ |
 
@@ -157,10 +168,15 @@ SonarQube Quality Gate - Estado actual:
    - Lección: Toda configuración merece un archivo de ejemplo/referencia en el repositorio
 
 4. **Los límites de los planes free en plataformas de despliegue**
-   - Render free tier: No permite discos persistentes en MariaDB (usar BD externa o aceptar datos efímeros)
-   - Vercel free tier: límites de funciones y bandwidth
-   - GitHub Actions free tier: 2,000 minutos/mes (suficiente para demo y pequeños proyectos)
-   - Lección: Leer siempre la documentación de "free tier" antes de compromiso arquitectónico
+   - Railway free tier: MariaDB como plugin externo (la BD del servicio se
+     levanta en un contenedor, sin persistencias de archivos; datos en el plugin
+     `overdrive-db`).
+   - Spotify *development mode*: máximo 25 usuarios conectables, hay que
+     agregarlos manualmente en el dashboard.
+   - GitHub Actions free tier: 2,000 minutos/mes (suficiente para demo y
+     pequeños proyectos).
+   - Lección: Leer siempre la documentación de "free tier" antes de compromiso
+     arquitectónico (los plugins de BD en Railway son la vía más sencilla).
 
 5. **El flujo de seguridad debe pensarse desde el inicio**
    - Agregar Helmet, rate limiting y CORS después es más difícil que hacerlo desde el primer commit
@@ -178,7 +194,7 @@ SonarQube Quality Gate - Estado actual:
 | **Cobertura de Tests** | Mantener cobertura ≥ 80% y agregar tests de integración para endpoints críticos | 94 tests actuales + 10 tests E2E | 2 semanas |
 | **Seguridad** | Implementar `helmet.csp` con directivas más específicas para producción | Score A en CSP reportes | Próximo mes |
 | **Performance** | Agregar `compression` middleware y medir tiempo de respuesta API | Reducir TTFB en 20% | Próximo trimestre |
-| **Despliegue** | Configurar `autoDeploy` en Render para branches feature | Deploy automático en cada PR | 1 mes |
+| **Despliegue** | Configurar `autoDeploy` en Railway para branches feature | Deploy automático en cada PR | 1 mes |
 
 ### 5.2 Propuesta de Innovación Tecnológica
 
@@ -215,12 +231,12 @@ SonarQube Quality Gate - Estado actual:
 - ✅ **Calidad**: 94 tests passing, cobertura 85% (≥ 80% requerido)
 - ✅ **Seguridad**: Helmet, CORS, rate limiting, protección contra XSS/SQLi
 - ✅ **CI/CD**: Pipeline automatizado con GitHub Actions (6 jobs)
-- ✅ **Despliegue**: Render + Vercel configurados, listos para $0/mes
+- ✅ **Despliegue**: Producción en Railway (un solo servicio, Dockerfile multi-stage)
 - ✅ **Documentación**: README completo, sonar-project.properties, reports de tests/seguridad
 - ✅ **Innovación**: Propuesta IA para predicción de donaciones
 
 **Próximos pasos**:
-1. Hacer `git push origin main` para deploy a Render
+1. La demo en producción ya está viva: `https://overdrive-production-1392.up.railway.app`
 2. Ejecutar presentación individual de 15 minutos
 3. Recibir retroalimentación y comenzar fase de mejora continua
 
@@ -238,11 +254,14 @@ npm run db:init                  # Inicializa BD con schema.sql + migrations
 # Pipeline CI/CD
 git push origin main             # Desencadena GitHub Actions automáticamente
 
-# Despliegue Render
-# Ya configurado: render.yaml listo, solo falta:
-# 1. Cuenta Render → New → Blueprint → conectar repo
-# 2. Configurar env vars en dashboard (JWT_SECRET, CORS_ORIGIN, SPOTIFY_*)
-# 3. git push → despliegue automático en 2-3 minutos
+# Despliegue Railway (ya activo, deploys automáticos desde main)
+# App: https://overdrive-production-1392.up.railway.app
+# Health: https://overdrive-production-1392.up.railway.app/api/health
+# BD: railway plugin (MySQL/MariaDB). Build: Dockerfile raíz,
+# Start: node scripts/db-init.js && node server.js (init idempotente).
+# En Railway añade: MARIADB_* (shared), DB_HOST=...railway.internal,
+# DB_PORT=3306, PORT=4000, JWT_SECRET, SPOTIFY_CLIENT_ID/SECRET,
+# SPOTIFY_REDIRECT_URI=<url>/api/spotify/callback, CORS_ORIGIN=<url>.
 
 # Variables críticas (backend/.env)
 JWT_SECRET=Pxndx
@@ -255,9 +274,10 @@ SPOTIFY_CLIENT_SECRET=a54fe696ab9b4e0c9d27735d0ed2851e
 
 1. **Terminal**: `npm test` mostrando "94 tests passing, coverage 85%"
 2. **GitHub Actions**: Job `backend-tests` verde con artifacts de cobertura
-3. **Render dashboard**: 3 servicios activos (db, backend, frontend)
-4. **SonarQube dashboard**: Métricas de calidad y cobertura
-5. **ZAP report**: HTML mostrando "0 alerts" o solo advertencias no críticas
+3. **Railway dashboard**: 1 servicio (web) verde + plugin `overdrive-db` (MaríaDB)
+4. **Producción**: `https://overdrive-production-1392.up.railway.app` funcionando
+5. **SonarQube dashboard**: Métricas de calidad y cobertura
+6. **ZAP report**: HTML mostrando "0 alertas" o solo advertencias no críticas
 
 ---
 *Proyecto OverDrive - Ingeniería de Software - Presentación Individual*
