@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 
-const DB_NAME = process.env.DB_NAME || 'overdrive';
+const DB_NAME = process.env.DB_NAME || process.env.MARIADB_DATABASE || 'overdrive';
 const ADMIN_HASH = '$2a$12$xawFLNM.Dd6VOolicX/dCuO0A1Fz/3bCRQIit/87/foPZgU1pbxwi';
 
 // Migraciones: columna que debe existir para considerar que ya se aplicó
@@ -57,10 +57,10 @@ async function columnExists(conn, table, column) {
 async function main() {
   // Conexión sin BD (para crear la BD si no existe)
   const conn = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306', 10),
-    user: process.env.DB_USER || 'overdrive_user',
-    password: process.env.DB_PASSWORD || process.env.DB_PASS || '2010',
+    host: process.env.DB_HOST || process.env.MARIADB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || process.env.MARIADB_PORT || '3306', 10),
+    user: process.env.DB_USER || process.env.MARIADB_USER || 'overdrive_user',
+    password: process.env.DB_PASSWORD || process.env.MARIADB_PASSWORD || '2010',
     multipleStatements: true,
     namedPlaceholders: false
   });
