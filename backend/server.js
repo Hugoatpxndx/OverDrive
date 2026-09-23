@@ -81,6 +81,26 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ============================================================
+// FRONTEND (producción)
+// ============================================================
+// Si existe el build de Vite (../frontend/dist), el backend lo sirve
+// en el mismo origen. Así basta con UN solo servicio en Railway:
+// la API vive en /api/* y el frontend en el resto de rutas.
+const fs = require('fs');
+const path = require('path');
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+
+  // SPA fallback: cualquier ruta que no sea /api/* devuelve index.html
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
 // Manejo centralizado de errores (evita exponer stack traces)
 app.use((err, req, res, next) => {
   console.error(err.stack);
