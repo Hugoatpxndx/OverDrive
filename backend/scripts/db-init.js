@@ -12,9 +12,15 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 
 const DB_NAME = process.env.MARIADB_DATABASE || process.env.DB_NAME || 'overdrive';
-const ADMIN_HASH = '$2a$12$xawFLNM.Dd6VOolicX/dCuO0A1Fz/3bCRQIit/87/foPZgU1pbxwi';
+
+async function adminHash() {
+  if (process.env.ADMIN_PASSWORD_HASH) return process.env.ADMIN_PASSWORD_HASH;
+  if (process.env.ADMIN_PASSWORD) return bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
+  return null;
+}
 
 // Migraciones: columna que debe existir para considerar que ya se aplicó
 const MIGRATIONS = [
@@ -83,14 +89,19 @@ async function main() {
     console.log(`[db-init] Migración ${mig.file}: aplicada`);
   }
 
-  // 3. Admin por defecto (idempotente)
-  await conn.query(
-    `INSERT INTO users (username, email, password_hash, role, tokens, email_verified)
-     SELECT 'admin', 'admin@overdrive.app', ?, 'administrador', 10, 1
-     FROM DUAL
-     WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@overdrive.app')`,
-    [ADMIN_HASH]
-  );
+  // 3. Admin por defecto (idempotente); solo si hay contraseña configurada
+  const hash = await adminHash();
+  if (!hash) {
+    console.warn('[db-init] Sin ADMIN_PASSWORD_HASH ni ADMIN_PASSWORD: no se crea el admin.');
+  } else {
+    await conn.query(
+      `INSERT INTO users (username, email, password_hash, role, tokens, email_verified)
+       SELECT 'admin', 'admin@overdrive.app', ?, 'administrador', 10, 1
+       FROM DUAL
+       WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@overdrive.app')`,
+      [hash]
+    );
+  }
 
   await conn.end();
   console.log(`[db-init] BD ${DB_NAME} lista.`);
