@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { executeQuery } = require('../config/db');
 
 // Sanitización de cadenas para prevenir XSS en campos de texto
@@ -63,7 +64,7 @@ const register = async (req, res) => {
     // Código de verificación de email (6 dígitos). Simula el correo que se
     // enviaría por SMTP en producción: el frontend lo muestra en pantalla
     // como "correo simulado". Sin él, el usuario no puede enviar propuestas.
-    const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
+    const verificationCode = String(crypto.randomInt(100000, 1000000));
     await executeQuery(
       'UPDATE users SET verification_code = ? WHERE id = ?',
       [verificationCode, userId]

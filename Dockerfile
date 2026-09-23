@@ -16,5 +16,7 @@ WORKDIR /app
 COPY --from=backend-build /app/backend /app/backend
 COPY --from=frontend-build /app/frontend/dist /app/frontend/dist
 WORKDIR /app/backend
+RUN chown -R node:node /app
+USER node
 EXPOSE 4000
 CMD ["npm", "start"]

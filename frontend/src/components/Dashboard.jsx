@@ -818,13 +818,23 @@ const Dashboard = () => {
       </main>
 
       {toast && (
-        <div className="confirm-overlay" onClick={closeToast} role="presentation">
+        <div
+          className="confirm-overlay"
+          role="button"
+          tabIndex={0}
+          aria-label="Cerrar notificación"
+          onClick={closeToast}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') closeToast();
+          }}
+        >
           <div
             className={`confirm-card confirm-${toast.type}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-title"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
           >
             <span className="confirm-icon">{toast.type === 'success' ? '✓' : '✕'}</span>
             <span className="confirm-timer" />
