@@ -52,7 +52,3 @@ CREATE TABLE IF NOT EXISTS submissions (
   CONSTRAINT fk_submissions_handled FOREIGN KEY (handled_by) REFERENCES users(id) ON DELETE SET NULL,
   INDEX idx_submissions_status (status)
 ) ENGINE=InnoDB;
-
-INSERT INTO users (username, email, password_hash, role, tokens, email_verified)
-SELECT 'admin', 'admin@overdrive.app', '$2a$12$xawFLNM.Dd6VOolicX/dCuO0A1Fz/3bCRQIit/87/foPZgU1pbxwi', 'administrador', 10, 1
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@overdrive.app');

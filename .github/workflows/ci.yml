@@ -29,11 +29,11 @@ jobs:
         working-directory: backend
         run: |
           for i in 1 2 3 4; do
-            npm ci && break
+            npm ci --ignore-scripts && break
+            [ $i -eq 4 ] && echo "npm ci falló" && exit 1
             echo "npm ci falló (intento $i); reintentando..."
             sleep 10
           done
-          npm install
 
       - name: Verificar sintaxis de Node.js
         working-directory: backend
@@ -92,11 +92,11 @@ jobs:
         working-directory: frontend
         run: |
           for i in 1 2 3 4; do
-            npm ci && break
+            npm ci --ignore-scripts && break
+            [ $i -eq 4 ] && echo "npm ci falló" && exit 1
             echo "npm ci falló (intento $i); reintentando..."
             sleep 10
           done
-          npm install
 
       - name: Construir el frontend
         working-directory: frontend
@@ -172,7 +172,7 @@ jobs:
 
       - name: Análisis de SonarQube
         if: steps.sonar-config.outputs.enabled == 'true'
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -219,6 +219,7 @@ jobs:
       DB_NAME: overdrive
       JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci_deploy_secret' }}
       CORS_ORIGIN: http://localhost:5173
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD || '8H8LrSK8qUhvuY7i6Ghs' }}
       SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
       SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
       SPOTIFY_REDIRECT_URI: http://127.0.0.1:4000/api/spotify/callback
@@ -238,11 +239,11 @@ jobs:
         working-directory: backend
         run: |
           for i in 1 2 3 4; do
-            npm ci && break
+            npm ci --ignore-scripts && break
+            [ $i -eq 4 ] && echo "npm ci falló" && exit 1
             echo "npm ci falló (intento $i); reintentando..."
             sleep 10
           done
-          npm install
 
       - name: Inicializar esquema de la BD
         working-directory: backend
@@ -274,10 +275,13 @@ jobs:
           curl -sf http://localhost:4000/api/health
           echo ""
           echo "== login admin =="
-          TOKEN=$(curl -sf -X POST http://localhost:4000/api/auth/login \
+          curl -sf -X POST http://localhost:4000/api/auth/login \
             -H 'Content-Type: application/json' \
             -d '{"identifier":"admin@overdrive.app","password":"8H8LrSK8qUhvuY7i6Ghs"}' \
-            | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+            -o /tmp/login-response.json
+          # Verificar que la respuesta es JSON válido antes de procesarla (S8482)
+          jq -e . /tmp/login-response.json >/dev/null 2>&1 || { echo "::error::Respuesta de login no es JSON válido"; exit 1; }
+          TOKEN=$(jq -r .token /tmp/login-response.json)
           echo "JWT obtenido: ${TOKEN:0:25}..."
           echo "== endpoint protegido con el token =="
           curl -sf http://localhost:4000/api/playlists \
@@ -336,11 +340,11 @@ jobs:
         working-directory: backend
         run: |
           for i in 1 2 3 4; do
-            npm ci && break
+            npm ci --ignore-scripts && break
+            [ $i -eq 4 ] && echo "npm ci falló" && exit 1
             echo "npm ci falló (intento $i); reintentando..."
             sleep 10
           done
-          npm install
 
       - name: Preparar reportes e inicializar la BD
         working-directory: backend
@@ -370,9 +374,10 @@ jobs:
 
       - name: Escaneo OWASP ZAP (baseline)
         run: |
-          # El contenedor ZAP corre como usuario 'zap' (uid 1000); hay que
-          # permitirle escribir en el directorio montado.
-          chmod 777 zap-reports
+          # El contenedor ZAP corre como usuario 'zap' (uid 1000); se asigna
+          # la propiedad del directorio a ese uid sin conceder escritura global.
+          sudo chown 1000:1000 zap-reports
+          chmod 755 zap-reports
           docker run --rm --network host \
             -v "$PWD/zap-reports:/zap/wrk:rw" \
             ghcr.io/zaproxy/zaproxy:stable \

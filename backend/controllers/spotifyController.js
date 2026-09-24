@@ -89,9 +89,12 @@ const spotifyCallback = async (req, res) => {
         [spotifyUserId, stateData.userId]
       );
       if (linkedRows.length > 0) {
+        // Sanitiza valores externos antes de loguearlos (previene Log Injection, S5145)
+        const safeUser = String(spotifyUserId).replace(/[\r\n\u0000-\u001F]/g, '');
+        const safeUsername = String(linkedRows[0].username).replace(/[\r\n\u0000-\u001F]/g, '');
         console.warn(
-          `Rechazado: la cuenta de Spotify ${spotifyUserId} ya está vinculada al usuario ` +
-          `"${linkedRows[0].username}" (id ${linkedRows[0].id})`
+          `Rechazado: la cuenta de Spotify ${safeUser} ya está vinculada al usuario ` +
+          `"${safeUsername}" (id ${linkedRows[0].id})`
         );
         return redirect('linked');
       }

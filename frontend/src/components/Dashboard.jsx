@@ -172,7 +172,13 @@ const Dashboard = () => {
     setError('');
     try {
       const res = await api.get('/api/spotify/auth-url');
-      window.location.href = res.data.authUrl;
+      const authUrl = res.data?.authUrl;
+      // Evita open redirect (S6105): solo se permite la URL de autorización de Spotify.
+      if (typeof authUrl === 'string' && /^https:\/\/accounts\.spotify\.com\//.test(authUrl)) {
+        window.location.href = authUrl;
+      } else {
+        throw new Error('URL de autorización de Spotify no válida');
+      }
     } catch (err) {
       showError(err.response?.data?.error || 'Error al conectarse con Spotify');
       setSpotifyLoading(false);
@@ -228,11 +234,16 @@ const Dashboard = () => {
   // ---------- Modo Curador: aceptar propuesta ----------
   const handleAccept = async (id) => {
     if (acceptingId) return; // evita doble clic / aceptaciones simultáneas
+    const safeId = Number.isInteger(Number(id)) ? Number(id) : null;
+    if (safeId === null) {
+      showToast('Error', 'Identificador no válido', 'error');
+      return;
+    }
     setError('');
     setMessage('');
     setAcceptingId(id);
     try {
-      const res = await api.post(`/api/submissions/${id}/accept`);
+      const res = await api.post(`/api/submissions/${safeId}/accept`);
       showToast(
         res.data.synced ? '¡Aceptada! Se agregó a Spotify (+1 token para ti)' : '¡Aceptada! (+1 token para ti)',
         res.data.message,
@@ -253,11 +264,16 @@ const Dashboard = () => {
   // ---------- Modo Curador: rechazar propuesta (devuelve el token al artista) ----------
   const handleReject = async (id) => {
     if (rejectingId) return; // evita doble clic / rechazos simultáneos
+    const safeId = Number.isInteger(Number(id)) ? Number(id) : null;
+    if (safeId === null) {
+      showToast('Error', 'Identificador no válido', 'error');
+      return;
+    }
     setError('');
     setMessage('');
     setRejectingId(id);
     try {
-      const res = await api.post(`/api/submissions/${id}/reject`);
+      const res = await api.post(`/api/submissions/${safeId}/reject`);
       showToast('Propuesta rechazada', res.data.message, 'success');
       loadAll();
     } catch (err) {
@@ -273,8 +289,13 @@ const Dashboard = () => {
 
   const handleCancel = async (id) => {
     if (!window.confirm('¿Cancelar este envío? Se te devolverá el token.')) return;
+    const safeId = Number.isInteger(Number(id)) ? Number(id) : null;
+    if (safeId === null) {
+      showToast('Error al cancelar', 'Identificador no válido', 'error');
+      return;
+    }
     try {
-      await api.post(`/api/submissions/${id}/cancel`);
+      await api.post(`/api/submissions/${safeId}/cancel`);
       showToast('Envío cancelado', 'Token devuelto.', 'success');
       loadAll();
     } catch (error) {
@@ -321,7 +342,7 @@ const Dashboard = () => {
       pending.map(async (s) => {
         const trackId = extractTrackId(s.track_url);
         if (!trackId) return { id: s.id, info: null };
-        const res = await api.get(`/api/spotify/track/${trackId}`);
+        const res = await api.get(`/api/spotify/track/${encodeURIComponent(trackId)}`);
         return {
           id: s.id,
           info: { name: res.data.name, artist: (res.data.artists || []).join(', ') }
@@ -349,7 +370,7 @@ const Dashboard = () => {
       pending.map(async (s) => {
         const trackId = extractTrackId(s.track_url);
         if (!trackId) return { id: s.id, info: null };
-        const res = await api.get(`/api/spotify/track/${trackId}`);
+        const res = await api.get(`/api/spotify/track/${encodeURIComponent(trackId)}`);
         return {
           id: s.id,
           info: { name: res.data.name, artist: (res.data.artists || []).join(', ') }
@@ -387,7 +408,7 @@ const Dashboard = () => {
       return;
     }
     try {
-      const res = await api.get(`/api/spotify/track/${trackId}`);
+      const res = await api.get(`/api/spotify/track/${encodeURIComponent(trackId)}`);
       setPreviewData((prev) => ({ ...prev, [subId]: res.data }));
     } catch (err) {
       showError(err.response?.data?.error || 'No se pudo cargar la canción para escucharla');

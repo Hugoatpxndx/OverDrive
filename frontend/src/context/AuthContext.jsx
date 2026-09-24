@@ -3,6 +3,26 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
+// Sanitiza el payload del usuario antes de persistirlo en localStorage para
+// evitar "Browser Storage Poisoning" (S8475): solo se admiten campos conocidos
+// con tipos esperados; cualquier otro contenido se descarta.
+const sanitizeUser = (data) => {
+  if (!data || typeof data !== 'object') return null;
+  const user = {};
+  for (const key of ['id', 'username', 'email', 'role', 'tokens', 'email_verified', 'verification_code', 'verificationCode']) {
+    if (key in data) user[key] = data[key];
+  }
+  if (!('id' in user)) return null;
+  return user;
+};
+
+const persistUser = (data) => {
+  const safe = sanitizeUser(data);
+  if (safe === null) return false;
+  localStorage.setItem('od_user', JSON.stringify(safe));
+  return true;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
@@ -19,8 +39,13 @@ export const AuthProvider = ({ children }) => {
 
     if (storedToken && storedUser) {
       try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const safe = sanitizeUser(JSON.parse(storedUser));
+        if (safe) {
+          setToken(storedToken);
+          setUser(safe);
+        } else {
+          throw new Error('Usuario almacenado no válido');
+        }
       } catch (err) {
         // Token corrupto, limpiar
         localStorage.removeItem('od_token');
@@ -42,9 +67,9 @@ export const AuthProvider = ({ children }) => {
       
       // Guardar en localStorage (persistencia de sesión)
       localStorage.setItem('od_token', jwtToken);
-      localStorage.setItem('od_user', JSON.stringify(userData));
+      persistUser(userData);
       
-      return { success: true };
+      return { success: true }; // login
     } catch (error) {
       return {
         success: false,
@@ -69,7 +94,7 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       
       localStorage.setItem('od_token', jwtToken);
-      localStorage.setItem('od_user', JSON.stringify(user));
+      persistUser(user);
       
       return { success: true };
     } catch (error) {
@@ -98,9 +123,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.post('/api/auth/verify', { code });
       const current = JSON.parse(localStorage.getItem('od_user') || '{}');
-      const updated = { ...current, ...res.data.user };
-      setUser(updated);
-      localStorage.setItem('od_user', JSON.stringify(updated));
+      const updated = sanitizeUser({ ...current, ...res.data.user });
+      if (updated) {
+        setUser(updated);
+        localStorage.setItem('od_user', JSON.stringify(updated));
+      }
       return { success: true };
     } catch (error) {
       return {
@@ -123,8 +150,11 @@ export const AuthProvider = ({ children }) => {
   const refreshUser = useCallback(async () => {
     try {
       const res = await api.get('/api/auth/me');
-      setUser(res.data.user);
-      localStorage.setItem('od_user', JSON.stringify(res.data.user));
+      const safe = sanitizeUser(res.data.user);
+      if (safe) {
+        setUser(safe);
+        localStorage.setItem('od_user', JSON.stringify(safe));
+      }
     } catch (err) {
       // Token expirado o red caída; se mantiene el valor previo en memoria.
     }

@@ -77,7 +77,7 @@ services:
       # Target del proxy de Vite: dentro de la red, el backend es "backend".
       VITE_PROXY_TARGET: http://backend:4000
     ports:
-      - "5173:5173"
+      - "5173:8080"
     depends_on:
       - backend
     networks:
