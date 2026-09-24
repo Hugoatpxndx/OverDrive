@@ -38,3 +38,6 @@ deploy/
 # métricas y reportes). NO se publican en GitHub.
 docs/
 zap-reports/
+
+# Bloqueos de LibreOffice
+.~lock.*#
