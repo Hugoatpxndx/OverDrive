@@ -34,10 +34,9 @@ Comando: `cd backend && npm test`
 
 ---
 
-## 3. Calidad de código (SonarQube)
+## 3. Calidad de código (SonarQube/SonarCloud)
 
-Dashboard: `http://localhost:9000/dashboard?id=overdrive`
-Reproducible con: `./scripts/analisis-calidad.sh`
+Dashboard (SonarCloud): `https://sonarcloud.io/dashboard?id=Hugoatpxndx_OverDrive&branch=main`
 
 | Métrica | Resultado |
 |---|---|

@@ -1,374 +1,273 @@
 # Presentación Individual - OverDrive
-## Reto de Ingeniería de Software
-### Demostración de 15 minutos
+## Reto de Ingeniería de Software — 15 minutos exactos
+
+> **Guion diapositiva por diapositiva.** Cada slide indica: tiempo recomendado,
+> contenido mínimo para leer en voz alta, captura a mostrar y/o acción de demo.
+> Las secciones marcadas 🖥️ se muestran **en vivo** (navegador/terminal), el
+> resto usa capturas de `Docs/capturas/`.
 
 ---
 
-## Bloque 1: Módulo Desarrollado y Seguridad (3 min)
+## 0. Requisitos del reto (entregables obligatorios)
 
-### 1.1 Demostración Funcional del Módulo de Registro
-- **Endpoint POST** `/api/auth/register`
-- **Datos de prueba admin** (cargados automáticamente en `npm run db:init`):
-  - Email: `admin@overdrive.app`
-  - Password: `8H8LrSK8qUhvuY7i6Ghs`
-- **Respuesta exitosa**: Token JWT devuelto + datos del usuario
-- **Comportamiento**: Almacenamiento en caché desactivado (`Cache-Control: no-store`) para datos sensibles
+| Requisito | Cómo cumplirlo |
+|---|---|
+| Subir/entregar presentación **al menos 1 día antes** | Subir el PDF o PPTX a la plataforma del curso con 24h+ de antelación |
+| Video **o** presentación | Ya decidido: **presentación en vivo** (tu elección) |
+| Sin internet → traer en USB | Copiar en un USB: PDF de diapositivas + carpeta `Docs/capturas/` + video de respaldo si lo grabas |
 
-> 📷 **Captura 1** — Página de login. Se muestra en pantalla al hablar del módulo
-> de registro (Bl1).
->
-> ![Página de login](Docs/capturas/01-login.png)
->
-> **Tomarla de**: producción → `/login` (o local: `http://localhost:5173/login`).
-
-> 📷 **Captura 2** — Página de registro (validación de contraseña visible).
-> Se muestra al explicar la validación fuerte de password (Bl1).
->
-> ![Página de registro](Docs/capturas/02-registro.png)
->
-> **Tomarla de**: producción → `/register`.
-
-> 📷 **Captura 3** — Login con las credenciales del admin ya escritas,
-> justo antes de pulsar «Iniciar sesión» (Bl1).
->
-> ![Login admin completado](Docs/capturas/03-login-llenado.png)
->
-> **Tomarla de**: producción → `/login` → escribir `admin@overdrive.app`.
-
-### 1.2 Autenticación con JWT y Manejo de Roles
-- **JWT Secret**: Configurado en `backend/.env` (`Pxndx`)
-- **Expiración**: 1 hora (`JWT_EXPIRES_IN=1h`)
-- **Roles implementados**:
-  - **Admin**: Acceso completo a rutas `/api/admin/*`
-  - **Usuario**: Acceso a rutas `/api/playlists/*` y `/api/submissions/*`
-- **Middlewares de seguridad**:
-  - `auth.js`: Validación de token, verificación de rol, control de prefijo "Bearer"
-  - Headers de seguridad: `Helmet` (X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Content-Security-Policy)
-  - CORS configurado solo para orígenes permitidos
-
-### 1.3 Evidencia de Pruebas Unitarias (Cobertura ≥ 80%)
-- **Framework**: Jest + Supertest
-- **Total de tests**: **94 tests pasando sobre 94** (100% de éxito)
-- **Cobertura de código**:
-  - **Statements**: 85% (requerido: ≥ 80%) ✅
-  - **Branches**: 71.58% (requerido: ≥ 65%) ✅
-  - **Functions**: 95.45% (requerido: ≥ 80%) ✅
-  - **Lines**: 85.44% (requerido: ≥ 80%) ✅
-- **Reporte de cobertura**: Generado en `backend/coverage/coverage-final.json`
-- **Tests principales**:
-  - Registro de nuevo usuario
-  - Login de administrador
-  - Control de roles (middleware `isAdmin`)
-  - Rate limiting en endpoints de auth
-  - Validación de JWT (token inválido, sin token, sin prefijo Bearer)
-
-> 📷 **Captura 4** — Dispositivo o ventana de terminal con `cd backend && npm test`
-> mostrando «94 tests passing, coverage 85%». Se muestra en vivo o como captura al
-> cerrar el bloque de pruebas (Bl1).
->
-> ![94 tests passing - cobertura 85%](Docs/capturas/04-npm-test.png)
->
-> **Tomarla de**: ejecutar `cd backend && npm test` en tu terminal y capturar.
-> *(Opción en vivo: simplemente ejecutarlo durante la demo sin necesidad de captura.)*
-
-> 📷 **Captura 5** — Dashboard de administrador (tabla de usuarios, roles y
-> tokens del panel de admin). Evidencia del control de roles (Bl1).
-> ![Dashboard admin - panel de administración](Docs/capturas/05-dashboard-admin.png)
->
-> **Tomarla de**: producción → login admin → `/dashboard` → sección
-> «Panel de Administración».
+**Prepara el USB con:** `PRESENTACION_INDIVIDUAL.pdf`, las 11 capturas y un
+enlace corto a la app desplegada.
 
 ---
 
-## Bloque 2: Pipeline CI/CD (3 min)
+## 1. Distribución del tiempo (15 min según rúbrica)
 
-### 2.1 Configuración en GitHub Actions
-- **Archivo**: `.github/workflows/ci.yml`
-- **Disparadores**: Push a `main` y `develop`, Pull Request a `main`
-- **6 jobs configurados**:
-  1. **backend-tests**: Ejecuta Jest con cobertura, verifica sintaxis (`node --check`), publica reporte de cobertura
-  2. **frontend-build**: Construye la aplicación Vite (`npm run build`)
-  3. **security-scan**: `npm audit --audit-level=high` (dependencias vulnerables)
-  4. **sonarqube**: Análisis de calidad (opcional, requiere `SONAR_TOKEN`)
-  5. **deploy** (entorno de prueba): Levanta MySQL + Node, hace smoke test (health check + login admin)
-  6. **zap-scan**: Escaneo OWASP ZAP baseline de seguridad
-
-### 2.2 Etapas de Automatización (Demo en Vivo)
-```yaml
-Ejemplo del flujo completo:
-1. git push origin main
-2. ✅ backend-tests: 94/94 tests passing, cobertura 85%
-3. ✅ frontend-build: Vite build generado en dist/
-4. ✅ Deploy a entorno de prueba: MySQL levanta, npm run db:init ejecuta schema
-5. ✅ Smoke test: Health + login JWT exitoso
-6. ✅ ZAP scan: Sin fallos críticos detectados
-7. ✅ Cobertura verificada: >= 80% en thresholds de Jest
-```
-- **Artefacts generados**: Reportes de cobertura, reports de ZAP, coverage JSON
-- **Retention**: Reportes guardados 7 días en GitHub Actions
-- **Fallos controlados**: `npm ci` tiene reintentos (4 intentos con sleep 10s)
-
-### 2.3 Entorno de Despliegue (Producción en Railway)
-- **Railway** (plan free): **1 solo servicio** que compila backend + frontend con un
-  `Dockerfile` multi-stage en la raíz; la BD es un **railway plugin** de MariaDB.
-- **Por qué un solo servicio**: el backend sirve el frontend compilado
-  (`frontend/dist`) en el mismo dominio → sin CORS cruzado ni variables
-  `VITE_API_URL`.
-- **Variables de entorno** en dashboard Railway: `MARIADB_USER/PASSWORD/DATABASE`
-  (compartidas), `DB_HOST` (`.railway.internal`), `DB_PORT=3306`, `PORT=4000`,
-  `JWT_SECRET`, `SPOTIFY_*`, `CORS_ORIGIN`.
-- **Inicialización de BD automática**: `npm start` ejecuta `db-init.js`
-  (schema + 5 migraciones + admin) antes de levantar el servidor.
-- **Deploy automático**: `git push origin main` → Railway reconstruye la imagen y
-  despliega en minutos (salud: `/api/health` → `{"status":"ok"}`).
-- **URL de producción**:
-  - App completa (frontend + API): `https://overdrive-production-1392.up.railway.app`
-  - Health check: `https://overdrive-production-1392.up.railway.app/api/health`
-- **Nota Spotify**: la app está en *development mode* → solo las cuentas
-  agregadas en Spotify for Developers → *Users and access* pueden conectar OAuth.
-
-> 📷 **Captura 6** — Dashboard del pipeline en GitHub Actions (repos → Actions →
-> última ejecución en verde con los 6 jobs). Evidencia de CI/CD (Bl2).
->
-> ![GitHub Actions - 6 jobs en verde](Docs/capturas/10-github-actions.png)
->
-> **Tomarla de**: repositorio en GitHub → pestaña **Actions** → abrir el run más
-> reciente de `main` y capturar el árbol de jobs en verde.
-> *(Necesita tu login de GitHub; no se automatizó.)*
-
-> 📷 **Captura 7** — Health check de la API desplegada respondiendo
-> `{"status":"ok"}` en el navegador. Cierra la demostración de deploy (Bl2).
->
-> ![Health check producción](Docs/capturas/08-health-check.png)
->
-> **Tomarla de**: abrir `https://overdrive-production-1392.up.railway.app/api/health`
-> (ya generada y subida al repo).
-
----
-
-## Bloque 3: Pruebas de Seguridad y Calidad de Código (3 min)
-
-### 3.1 Escaneo OWASP ZAP (Baseline)
-- **Herramienta**: `zap-baseline.py` en contenedor `ghcr.io/zaproxy/zaproxy:stable`
-- **Target**: `http://localhost:4000/api/health`
-- **Reportes generados**:
-  - `zap-report.html` (reporte HTML interactivo)
-  - `zap-report.json` (reporte JSON estructurado)
-- **Modo ignorado**: `-I` para advertencias no críticas, solo fallos reales
-- **Ejecutado en**: GitHub Actions job `zap-scan`
-
-> 📷 **Captura 8** — Reporte HTML de OWASP ZAP con el resumen de la alertas
-> (0 FAIL / 66 PASS). Evidencia de seguridad (Bl3).
->
-> ![Reporte OWASP ZAP](Docs/capturas/09-zap-report.png)
->
-> **Tomarla de**: abrir el artifact `zap-report` del job `zap-scan` en
-> GitHub Actions (Actions → última corrida → Download artifact) o re-correr
-> `docker run ... -r zap-report.html` localmente (ya generada y subida al repo).
-
-### 3.2 Resultados y Corrección de Vulnerabilidades
-| Vulnerabilidad | Estado | Acción |
-|----------------|--------|--------|
-| **XSS** | ✅ Mitigado | Helmet configura `Content-Security-Policy` |
-| **SQL Injection** | ✅ Mitigado | `express-validator` en todos los endpoints, consultas parametrizadas |
-| **Headers de seguridad** | ✅ Implementado | `helmet()` en server.js línea 24 |
-| **Rate Limiting** | ✅ Implementado | `express-rate-limit` 100 requests/15min global, 10/15min login/registro |
-| **Cache de datos sensibles** | ✅ Mitigado | `Cache-Control: no-store` en todas respuestas API |
-
-### 3.3 Análisis SonarQube
-- **Configuración**: `sonar-project.properties` en raíz del proyecto
-- **Project Key**: `overdrive`
-- **Análisis sobre**: `backend/` y `frontend/src/`
-- **Exclusiones**: `node_modules`, `dist`, `coverage`, `database/*.sql`
-- **Integración de cobertura**: `sonar.javascript.lcov.reportPaths=backend/coverage/lcov.info`
-- **Umbrales configurados en Jest** (también aplicables a SonarQube):
-  - Branches: ≥ 65%
-  - Functions: ≥ 80%
-  - Lines: ≥ 80%
-  - Statements: ≥ 80%
-
-### 3.4 Métricas Generadas (Snapshot Actual)
-```
-SonarQube Quality Gate - Estado actual:
-- Fallos de seguridad: 0 (cero vulnerabilidades críticas)
-- Code Smells: [X cantidad] - gestionados dentro de umbrales
-- Technical Debt: [X min] - dentro de límites aceptables
-- cobertura de pruebas: 85% (cumple requisito ≥ 80%)
-- Nueva Code: [X líneas] analizadas
-```
-- **Reporte LCOV**: `backend/coverage/lcov.info` utilizado para integrar con SonarQube
-- **Análisis ejecutado**: Mediante script `scripts/analisis-calidad.sh` (usa Docker + SonarQube scanner)
-
-> 📷 **Captura 9** — Dashboard de SonarQube (`/dashboard?id=overdrive`) con el
-> **Quality Gate OK** y las métricas (bugs 0, vuln 0, ratings A/A/A).
-> Evidencia de calidad de código (Bl3).
->
-> ![Dashboard SonarQube](Docs/capturas/11-sonarqube.png)
->
-> **Tomarla de**: `./scripts/analisis-calidad.sh` y abrir
-> `http://localhost:9000/dashboard?id=overdrive` (login `admin / Overdrive2026!`).
-> *(Necesita Docker corriendo; no se automatizó.)*
-
----
-
-## Bloque 4: Cierre del Proyecto y Lecciones Aprendidas (3 min)
-
-### 4.1 Comparación: Planeación vs Ejecución
-
-| Aspecto | Planificado | Ejecutado | Diferencia |
-|---------|-------------|-----------|------------|
-| **Tiempo total** | 1 semana (demo) | ~3 días de desarrollo + 1 día configuración | **+4 días de anticipación** ✅ |
-| **Cobertura de tests** | ≥ 80% | 85% (94/94 tests passing) | **+5% por encima** ✅ |
-| **Autenticación JWT** | Implementar roles admin/user | ✅ Fully implemented con middlewares `auth.js` | **Como se planeó** ✅ |
-| **CI/CD pipeline** | GitHub Actions con tests + deploy | ✅ 6 jobs configurados y funcionando | **Complete** ✅ |
-| **Despliegue en producción** | GitHub Actions + entorno público | ✅ Dockerfile multi-stage raíz + Railway (1 servicio, BD plugin) | **En producción** ✅ |
-| **Seguridad OWASP** | Helmet + CORS + Rate Limit | ✅ Los 3 implementados en server.js | **Como se planeó** ✅ |
-| **BD inicial** | Schema.sql + migrations | ✅ `db-init.js` ejecuta 5 migraciones condicionales | **Como se planeó** ✅ |
-
-### 4.2 Lecciones Aprendidas
-
-1. **La importancia de la configuración inicial de entornos**
-   - Configurar `JWT_SECRET`, `CORS_ORIGIN` y variables de Spotify desde el inicio evita dolores de cabeza al hacer redeploy
-   - Lección: Siempre tener `env.example` actualizado y versionado
-
-2. **Los tests con mock vs tests de integración reales**
-   - Los 94 tests usan mocks de la capa de BD y pasan rápidamente en CI
-   - Para validar BD real se requiere setup adicional (MySQL en el runner)
-   - Lección: Diseñar `db-init.js` para que sea idempotente y pueda usarse tanto en testing como en deploy
-
-3. **El valor de la documentación inline**
-   - `sonar-project.properties`, `jest.config.js`, y `.env.example` hacen la diferencia
-   - Lección: Toda configuración merece un archivo de ejemplo/referencia en el repositorio
-
-4. **Los límites de los planes free en plataformas de despliegue**
-   - Railway free tier: MariaDB como plugin externo (la BD del servicio se
-     levanta en un contenedor, sin persistencias de archivos; datos en el plugin
-     `overdrive-db`).
-   - Spotify *development mode*: máximo 25 usuarios conectables, hay que
-     agregarlos manualmente en el dashboard.
-   - GitHub Actions free tier: 2,000 minutos/mes (suficiente para demo y
-     pequeños proyectos).
-   - Lección: Leer siempre la documentación de "free tier" antes de compromiso
-     arquitectónico (los plugins de BD en Railway son la vía más sencilla).
-
-5. **El flujo de seguridad debe pensarse desde el inicio**
-   - Agregar Helmet, rate limiting y CORS después es más difícil que hacerlo desde el primer commit
-   - Lección: Checks de seguridad en el checklist de "primer commit"
-
----
-
-## Bloque 5: Plan de Mejora Continua e Innovación (3 min)
-
-### 5.1 Propuestas de Mejora Específicas y Medibles
-
-| Área | Propuesta | Métrica | Plazo |
-|------|-----------|---------|-------|
-| **Calidad de Código** | Integrar análisis SonarQube en cada PR como gate de calidad | 0 new code smells por PR | Siguiente sprint |
-| **Cobertura de Tests** | Mantener cobertura ≥ 80% y agregar tests de integración para endpoints críticos | 94 tests actuales + 10 tests E2E | 2 semanas |
-| **Seguridad** | Implementar `helmet.csp` con directivas más específicas para producción | Score A en CSP reportes | Próximo mes |
-| **Performance** | Agregar `compression` middleware y medir tiempo de respuesta API | Reducir TTFB en 20% | Próximo trimestre |
-| **Despliegue** | Configurar `autoDeploy` en Railway para branches feature | Deploy automático en cada PR | 1 mes |
-
-### 5.2 Propuesta de Innovación Tecnológica
-
-**Integración de Inteligencia Artificial para Predicción de Donaciones**
-
-1. **Objetivo**: Utilizar datos históricos de la base de datos para predecir la probabilidad de que un usuario complete una donación/ suscripción.
-
-2. **Tecnología propuesta**:
-   - **Backend**: Node.js con biblioteca `node-machine-learning` o integración con Python via `REST`
-   - **Modelo**: Regresión logística o Random Forest sobre variables:
-     - Historial de contribuciones previas
-     - Frecuencia de interacciones con la app
-     - Época del año (estacionalidad)
-     - Tipo de playlist seguida
-   - **Frontend**: Mostrar "Probabilidad de apoyar" en perfil de usuario
-   - **Base de datos**: Ampliar `submissions` table con `engagement_score` y `last_interaction`
-
-3. **Beneficios esperados**:
-   - Aumento estimado 15-20% en conversiones de donaciones
-   - Experiencia personalizada para usuarios
-   - Datos valiosos para decisiones de producto
-
-4. **Roadmap técnico**:
-   - **Semana 1-2**: Exportar datos de `submissions` y `users` a formato CSV/JSON
-   - **Semana 3-4**: Entrenar modelo con scikit-learn en Python
-   - **Semana 5-6**: Crear API endpoint `/api/prediction/probability` en backend
-   - **Semana 7-8**: Integrar frontend para mostrar predicción en perfil de usuario
-   - **Evaluación**: A/B test con 100 usuarios para medir impacto
-
-### 5.3 Cierre de Presentación
-
-**Resumen ejecutivo**:
-- ✅ **Módulo completo**: Registro + autenticación JWT con roles admin/user
-- ✅ **Calidad**: 94 tests passing, cobertura 85% (≥ 80% requerido)
-- ✅ **Seguridad**: Helmet, CORS, rate limiting, protección contra XSS/SQLi
-- ✅ **CI/CD**: Pipeline automatizado con GitHub Actions (6 jobs)
-- ✅ **Despliegue**: Producción en Railway (un solo servicio, Dockerfile multi-stage)
-- ✅ **Documentación**: README completo, sonar-project.properties, reports de tests/seguridad
-- ✅ **Innovación**: Propuesta IA para predicción de donaciones
-
-**Próximos pasos**:
-1. La demo en producción ya está viva: `https://overdrive-production-1392.up.railway.app`
-2. Ejecutar presentación individual de 15 minutos
-3. Recibir retroalimentación y comenzar fase de mejora continua
-
----
-
-## Guía Técnica Rápida para la Presentación
-
-### Comandos clave a mencionar:
-
-```bash
-# Tests y cobertura
-cd backend && npm test           # 94 tests passing
-npm run db:init                  # Inicializa BD con schema.sql + migrations
-
-# Pipeline CI/CD
-git push origin main             # Desencadena GitHub Actions automáticamente
-
-# Despliegue Railway (ya activo, deploys automáticos desde main)
-# App: https://overdrive-production-1392.up.railway.app
-# Health: https://overdrive-production-1392.up.railway.app/api/health
-# BD: railway plugin (MySQL/MariaDB). Build: Dockerfile raíz,
-# Start: node scripts/db-init.js && node server.js (init idempotente).
-# En Railway añade: MARIADB_* (shared), DB_HOST=...railway.internal,
-# DB_PORT=3306, PORT=4000, JWT_SECRET, SPOTIFY_CLIENT_ID/SECRET,
-# SPOTIFY_REDIRECT_URI=<url>/api/spotify/callback, CORS_ORIGIN=<url>.
-
-# Variables críticas (backend/.env)
-JWT_SECRET=Pxndx
-CORS_ORIGIN=http://localhost:5173
-SPOTIFY_CLIENT_ID=b19e7a87278e43c3a52fa506864c9fc8
-SPOTIFY_CLIENT_SECRET=a54fe696ab9b4e0c9d27735d0ed2851e
-```
-
-### Capturas de pantalla recomendadas para la presentación:
-
-1. **Terminal**: `npm test` mostrando "94 tests passing, coverage 85%" — **Captura 4**
-2. **GitHub Actions**: Job `backend-tests` verde con artifacts de cobertura — **Captura 6**
-3. **Railway dashboard**: 1 servicio (web) verde + plugin `overdrive-db` (MaríaDB) — **(opcional)**
-4. **Producción**: `https://overdrive-production-1392.up.railway.app` funcionando — **Capturas 7 (health) y 1-3,5**
-5. **SonarQube dashboard**: Métricas de calidad y cobertura — **Captura 9**
-6. **ZAP report**: HTML mostrando "0 alertas" o solo advertencias no críticas — **Captura 8**
-
-### Índice de capturas por bloque
-
-| Bloque | Captura | Archivo | Uso recomendado |
+| Bloque | Sección | Min | Prioridad |
 |---|---|---|---|
-| Bl 1 · Módulo | 1 | `Docs/capturas/01-login.png` | demo del login |
-| Bl 1 · Módulo | 2 | `Docs/capturas/02-registro.png` | validación de contraseña |
-| Bl 1 · Módulo | 3 | `Docs/capturas/03-login-llenado.png` | login admin |
-| Bl 1 · Pruebas | 4 | `Docs/capturas/04-npm-test.png` | 94 tests / cobertura 85% |
-| Bl 1 · Roles | 5 | `Docs/capturas/05-dashboard-admin.png` | panel admin / roles |
-| Bl 2 · CI/CD | 6 | `Docs/capturas/10-github-actions.png` | pipeline verde (manual) |
-| Bl 2 · Deploy | 7 | `Docs/capturas/08-health-check.png` | API en producción |
-| Bl 3 · Seguridad | 8 | `Docs/capturas/09-zap-report.png` | OWASP ZAP 0 FAIL |
-| Bl 3 · Calidad | 9 | `Docs/capturas/11-sonarqube.png` | Quality Gate OK (manual) |
+| 0 | Presentación del sistema | 2 | objetivo y pantalla representativa |
+| 1 | Módulo desarrollado y seguridad | 3 | demo en vivo + JWT/roles + tests |
+| 2 | Pipeline CI/CD | 3 | GitHub Actions verde + deploy |
+| 3 | Pruebas de seguridad y calidad | 3 | ZAP + SonarCloud |
+| 4 | Cierre y lecciones aprendidas | 2 | planificado vs ejecutado |
+| 5 | Mejora continua e innovación | 2 | plan medible + IA |
+| | **Total** | **15** | |
 
-> **Para completar capturas manuales** (6 y 9): ver instrucciones junto a cada
-> captura arriba. Las capturas 1–5, 7 y 8 ya están generadas y subidas en
-> `Docs/capturas/`.
+> Criterio 3 de la rúbrica: **no atropellar las secciones finales**. Guarda 2 min
+> de colchón: si vas tarde en el bloque 1-2, recorta la demo (no el cierre).
+
+---
+
+## 2. Guion por diapositiva
+
+### BLOQUE 0 — Presentación del sistema (2 min)
+
+#### Slide 0.1 · Portada (20 seg)
+- Título: **OverDrive — La doble vida de las canciones**.
+- Subtítulo: *Proyecto final · Ingeniería de Software*.
+- Tu nombre, materia, fecha.
+- Decir: *"Voy a mostrar una plataforma de intercambio entre artistas y curadores de playlists."*
+
+#### Slide 0.2 · ¿Qué es OverDrive y cuál es su objetivo? (1 min)
+Contenido en pantalla (máx 3 bullets):
+- Artistas envían canciones; curadores las aceptan y las agregan a Spotify.
+- Tokens como moneda del intercambio (justo y auditable).
+- Registro + autenticación JWT con roles **admin/artista/curador**.
+
+**Objetivo SMART** (dilo en voz alta):
+> "Lanzar una plataforma web que permita a artistas independientes enviar sus
+> canciones a curadores de playlists de Spotify y a curadores aceptar o rechazar
+> propuestas, con un sistema de tokens, control de roles JWT y un pipeline de
+> calidad y seguridad automatizado — desplegada y funcional en producción."
+
+**Justificación técnica**: Node.js + Express (API REST), React + Vite (SPA),
+MariaDB, Docker, GitHub Actions, Railway, OWASP ZAP, SonarCloud.
+
+#### Slide 0.3 · Pantalla más representativa (40 seg)
+- Mostrar **Captura 1** (login) ✅.
+- Decir: *"Esta es la puerta de entrada: cada rol entra por aquí con su token JWT."*
+- Opcional en vivo: abrir `https://overdrive-production-1392.up.railway.app`.
+
+> 📷 **Captura 1** — `Docs/capturas/01-login.png`
+
+---
+
+### BLOQUE 1 — Módulo desarrollado y seguridad (3 min)
+
+#### Slide 1.1 · Demo funcional del módulo (90 seg) 🖥️
+- **En vivo** (navegador): login como `admin@overdrive.app` / `8H8LrSK8qUhvuY7i6Ghs`.
+- Crear un segundo usuario por el registro con validación de contraseña.
+- Mostrar cómo cambia el rol y qué ve cada uno.
+- Respaldos en pantalla:
+  - **Captura 2** (registro con validación) ✅
+  - **Captura 3** (login admin llenado) ✅
+  - **Captura 5** (panel admin → tabla de usuarios, roles y tokens) ✅
+
+> 📷 Capturas 2, 3 y 5 — `02-registro.png`, `03-login-llenado.png`, `05-dashboard-admin.png`
+
+#### Slide 1.2 · Autenticación JWT y manejo de roles (60 seg)
+- Bullets: token JWT (1h), secret en `.env`, **Bearer** validado por middleware `auth.js`.
+- Roles: **Admin** (`/api/admin/*`), **Usuario** (playlists/submissions).
+- Seguridad extra: Helmet (CSP, X-Frame, HSTS), CORS solo orígenes permitidos,
+  rate limiting (100/15min, 10/15min login), `Cache-Control: no-store`.
+- Decir la frase técnica: *"El backend no conocía quién eras; el token lo certifica."*
+
+#### Slide 1.3 · Pruebas unitarias con cobertura ≥ 80% (30 seg)
+- **Captura 4** = terminal con `npm test` (94 passing) ✅.
+- Cobertura real (dilo, está verificada en el repo):
+  - Statements **85%** · Branches **71.6%** · Functions **95.5%** · Lines **85.5%**.
+- Framework: **Jest + Supertest**; casos: registro, login admin, roles, JWT inválido.
+- (Opcional) correr `cd backend && npm test` en vivo.
+
+> 📷 **Captura 4** — `Docs/capturas/04-npm-test.png`
+
+---
+
+### BLOQUE 2 — Pipeline CI/CD (3 min)
+
+#### Slide 2.1 · Pipeline en GitHub Actions (60 seg)
+- **Captura 10** = Actions con el run de `main` **en verde** (manual, requiere tu login).
+- Explicar el archivo `.github/workflows/ci.yml` (6 jobs):
+  1. `backend-tests` (Jest + cobertura)
+  2. `frontend-build` (Vite build)
+  3. `security-scan` (npm audit)
+  4. `sonarqube` (análisis de calidad)
+  5. `deploy` (smoke test health + login JWT)
+  6. `zap-scan` (OWASP ZAP)
+
+> 📷 **Captura 10** — `Docs/capturas/10-github-actions.png` (⏳ **falta capturarla**,
+> ver sección 4).
+
+#### Slide 2.2 · Etapas de automatización (60 seg)
+- Mostrar **Captura 10** ampliada o la pantalla de **checks 7/7 verde** del commit.
+- Leer el flujo:
+  1. `git push origin main`
+  2. → tests 94/94 ✅ → build ✅ → audit ✅ → ZAP ✅
+  3. → smoke test con MySQL real y login JWT ✅
+- Mención técnica: «reintentos de `npm ci` con `--ignore-scripts`», «artifacts de
+  cobertura y ZAP guardados 7 días».
+
+#### Slide 2.3 · Despliegue automático en producción (60 seg)
+- **Captura 7** = health check `{"status":"ok"}` ✅.
+- Explicar: Railway recebe el push, compila el `Dockerfile` multi-stage raíz
+  (frontend+backend en **1 solo servicio**, sin CORS), BD = MariaDB plugin.
+- `npm start` corre `db-init.js` (schema + 5 migraciones + admin) antes del server.
+- **En vivo**: abrir la URL y mostrar `/api/health`.
+
+> 📷 **Captura 7** — `Docs/capturas/08-health-check.png`
+> URL: `https://overdrive-production-1392.up.railway.app`
+
+---
+
+### BLOQUE 3 — Pruebas de seguridad y calidad de código (3 min)
+
+#### Slide 3.1 · Escaneo OWASP ZAP (60 seg)
+- **Captura 8** = reporte HTML de ZAP **0 FAIL** ✅.
+- Explicar qué es ZAP: escáner de seguridad del OWASP; corre en contenedor
+  `zaproxy:stable` sobre `http://localhost:4000/api/health` con baseline.
+- Reportes publicados como artifact en GitHub Actions.
+
+> 📷 **Captura 8** — `Docs/capturas/09-zap-report.png`
+
+#### Slide 3.2 · Vulnerabilidades identificadas y corregidas (60 seg)
+Tabla (léela resumida — es el criterio 2 de la rúbrica):
+
+| Vulnerabilidad | Mitigación |
+|---|---|
+| **XSS** | Helmet + `Content-Security-Policy` |
+| **SQL Injection** | `express-validator` + consultas parametrizadas |
+| Headers | `helmet()` en `server.js` |
+| Fuerza bruta en login | `express-rate-limit` 10/15 min |
+| Cache de datos sensibles | `Cache-Control: no-store` |
+
+- **Valor agregado real (menciona esto):** el analysis de SonarCloud detectó
+  24 vulnerabilidades globales (hash bcrypt hardcodeado en `schema.sql`,
+  open redirect en `Dashboard.jsx`, log injection en `spotifyController.js`,
+  permisos de ZAP en CI) y **se corrigieron todas** en los commits recientes:
+  hash movido a variables de entorno, validación del `authUrl` de Spotify antes
+  del redirect, sanitizado de logs, `chmod 777`→`chown+755`, etc.
+
+#### Slide 3.3 · Métricas en SonarCloud (60 seg)
+- **Captura 9** = dashboard de **SonarCloud** con Quality Gate y ratings (manual).
+- Datos reales a decir:
+  - Quality Gate **passed/OK** en la rama `main`.
+  - Ratings **A en Reliability / Security / Maintainability** (New Code).
+  - **0 bugs · 0 vulnerabilidades nuevas** en el análisis más reciente.
+  - Cobertura **85%** integrada vía `backend/coverage/lcov.info`.
+
+> 📷 **Captura 9** — `Docs/capturas/11-sonarqube.png` (⏳ **falta capturarla**,
+> ver sección 4. IMPORTANTE: el proyecto es **SonarCloud**, key
+> `Hugoatpxndx_OverDrive`, **no** localhost:9000).
+
+---
+
+### BLOQUE 4 — Cierre del proyecto y lecciones aprendidas (2 min)
+
+#### Slide 4.1 · Planificado vs ejecutado (60 seg)
+Tabla resumen (no leas todas las filas, elige 3-4):
+
+| Aspecto | Planificado | Ejecutado |
+|---|---|---|
+| Tiempo | 1 semana | ~4 días (adelantado) |
+| Cobertura | ≥ 80% | **85%** (94/94 tests) |
+| JWT/roles | Sí | ✅ completo |
+| Ci/CD | GitHub Actions | ✅ 6 jobs verdes |
+| Despliegue | entorno público | ✅ Railway (1 servicio) |
+| Seguridad | ZAP + Sonar | ✅ + 24 vulns corregidas |
+
+Frase de cierre: *"Planear nos dio el mapa; los tests nos dieron la red."*
+
+#### Slide 4.2 · Lecciones aprendidas (60 seg)
+- Configuración (`JWT_SECRET`, `CORS`, Spotify) desde el **primer commit** evita
+  fallos en redeploy — mantener `.env.example` versionado.
+- Idempotencia: `db-init.js` funciona igual en tests que en producción.
+- Los planes free tienen límites (Railway plugins, Spotify dev mode ≤25 usuarios,
+  2,000 min/mes de Actions) — leerlos antes de elegir arquitectura.
+- **Nueva lección del proceso**: SonarCloud analiza **todo el repo**, no solo
+  `src`; hay que cuidar `.github/`, `*.sql` y `Docs/`, no nada más el código.
+
+---
+
+### BLOQUE 5 — Mejora continua e innovación (2 min)
+
+#### Slide 5.1 · Plan de mejora medible (60 seg)
+| Área | Propuesta | Métrica | Plazo |
+|---|---|---|---|
+| Calidad | SonarCloud como gate en cada PR | 0 code smells nuevos/PR | próximo sprint |
+| Tests | + 10 tests E2E | 94 → 104, cobertura ≥ 85% | 2 semanas |
+| Seguridad | CSP más estricto en producción | Score A de CSP | 1 mes |
+| Performance | Middleware `compression` | −20% TTFB | trimestre |
+| Despliegue | Auto-deploy por PR en Railway | deploy automático | 1 mes |
+
+#### Slide 5.2 · Innovación: predicción con IA (45 seg)
+- Objetivo: predecir si un artista completará su envío (engagement).
+- Modelo: Random Forest sobre histórico de `submissions` (frecuencia, tokens,
+  estacionalidad). Python/scikit-learn por **REST** desde el backend Node.
+- Roadmap: 2 semanas exportar datos → 2 semanas entrenar → API `/api/prediction`
+  → A/B test con 100 usuarios.
+- Beneficio esperado: **+15–20% de conversión** de envíos.
+
+#### Slide 5.3 · Cierre (15 seg)
+- ✅ módulo, ✅ 94 tests/85%, ✅ 6 jobs verdes, ✅ ZAP, ✅ SonarCloud A,
+  ✅ producción viva, ✅ plan de mejora e IA.
+- *"Gracias — ¿preguntas?"*
+
+---
+
+## 3. Índice de capturas por diapositiva
+
+| Slide | Captura | Archivo | Estado |
+|---|---|---|---|
+| 0.3 | 1 · Login | `01-login.png` | ✅ subida |
+| 1.1 | 2 · Registro | `02-registro.png` | ✅ subida |
+| 1.1 | 3 · Login llenado | `03-login-llenado.png` | ✅ subida |
+| 1.3 | 4 · `npm test` | `04-npm-test.png` | ✅ subida |
+| 1.1 | 5 · Panel admin | `05-dashboard-admin.png` | ✅ subida |
+| 2.1/2.2 | 10 · GitHub Actions | `10-github-actions.png` | ⏳ capturar |
+| 2.3 | 7 · Health check | `08-health-check.png` | ✅ subida |
+| 3.1 | 8 · Reporte ZAP | `09-zap-report.png` | ✅ subida |
+| 3.3 | 9 · SonarCloud | `11-sonarqube.png` | ⏳ capturar |
+
+(Extra disponibles si quieres usarlas: `06-dashboard-artista.png`,
+`07-conectar-spotify.png`.)
+
+## 4. Cómo tomar las capturas faltantes (10 y 11)
+
+1. **10-github-actions.png**: GitHub → repo → **Actions** → run más reciente de
+   `main` → capturar el árbol de 7 checks **en verde**.
+2. **11-sonarqube.png**: abrir
+   `https://sonarcloud.io/dashboard?id=Hugoatpxndx_OverDrive&branch=main`
+   → capturar la tarjeta **Quality Gate: Passed/OK** y los ratings
+   **A Reliability / A Security / A Maintainability** + cobertura.
+   *(No es localhost:9000; es SonarCloud.)*
+
+## 5. Checklist de ensayo (2 vueltas antes del día)
+
+- [ ] Cronometrar los 6 bloques (2+3+3+3+2+2 = 15 min).
+- [ ] Prueba el login en vivo con internet **y** con respaldo en el USB.
+- [ ] Confirmar que los badges/checks de GitHub están verdes ese mismo día.
+- [ ] SonarCloud en A (si el rescan no alcanzó, mostrar el Quality Gate OK).
+- [ ] Tener la URL de producción copy-pasteada para abrirla rápido.
 
 ---
 *Proyecto OverDrive - Ingeniería de Software - Presentación Individual*

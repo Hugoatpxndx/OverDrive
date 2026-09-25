@@ -148,7 +148,7 @@ Artista envía (‒1 token) → Curador ve canción, artista y fecha en su bande
 
 ## 8) SonarQube y ZAP (calidad y seguridad extra)
 
-- **SonarQube**: panel que da nota al código (bugs, vulnerabilidades, code smells, duplicación). Umbral de cobertura también se valida ahí. Se levanta con Docker en `localhost:9000`.
+- **SonarQube/SonarCloud**: panel que da nota al código (bugs, vulnerabilidades, code smells, duplicación). Umbral de cobertura también se valida ahí. En este proyecto el análisis oficial corre en **SonarCloud** vía el job `sonarqube` del CI: <https://sonarcloud.io/dashboard?id=Hugoatpxndx_OverDrive&branch=main>. (También se puede levantar localmente con Docker en `localhost:9000`.)
 - **OWASP ZAP**: atacante automático que apunta a la URL de tu app y reporta hallazgos (XSS, SQLi, cabeceras). Genera `zap-report.html` que se sube como artifact del pipeline.
 
 ---

@@ -214,10 +214,10 @@ git push origin main
 X-Frame-Options, HSTS, CSP), CORS por origen, rate-limit, body ≤ 10 kb,
 errores sin stack traces.
 
-## 3.2 SonarQube (calidad de código)
+## 3.2 SonarQube/SonarCloud (calidad de código)
 
-Dashboard: `http://localhost:9000/dashboard?id=overdrive` ·
-Reproducible: `./scripts/analisis-calidad.sh`
+Dashboard (SonarCloud): `https://sonarcloud.io/dashboard?id=Hugoatpxndx_OverDrive&branch=main`
+(Ci: job `sonarqube` con `SonarSource/sonarqube-scan-action`).
 
 | Métrica | Resultado |
 |---|---|
@@ -255,11 +255,10 @@ de **2 → 0**.
 | # | Archivo | Ubicación en el reporte / uso |
 |---|---|---|
 | 8 | `capturas/09-zap-report.png` | Apartado 3.1 (OWASP ZAP): resumen del reporte con 0 FAIL / 66 PASS. |
-| 9 | `capturas/11-sonarqube.png` | Apartado 3.2 (SonarQube): Quality Gate OK y ratings A/A/A. *(Manual: `./scripts/analisis-calidad.sh` → `http://localhost:9000`.)* |
+| 9 | `capturas/11-sonarqube.png` | Apartado 3.2 (SonarCloud): Quality Gate OK y ratings A/A/A. *(Manual: GitHub → commit `main` → check "SonarCloud Code Analysis" → "Details".)* |
 | 4 | `capturas/04-npm-test.png` | Apartado 3.3: evidencia de pruebas automatizadas. |
 
-> La captura 8 ya está versionada. La 9 requiere tener Docker + SonarQube
-> corriendo localmente.
+> La captura 8 ya está versionada. La 9 requiere tu login de GitHub/SonarCloud.
 
 ---
 
@@ -412,7 +411,12 @@ Carpeta: `Docs/capturas/` (versionada en el repositorio).
 | 8 | `capturas/08-health-check.png` | Health check `{"status":"ok"}` | C2 | ✅ generada |
 | 9 | `capturas/09-zap-report.png` | Reporte OWASP ZAP (0 FAIL) | C3 | ✅ generada |
 | 10 | `capturas/10-github-actions.png` | Pipeline GHA con 6 jobs en verde | C2 | ⏳ manual (tu login) |
-| 11 | `capturas/11-sonarqube.png` | SonarQube Quality Gate OK | C3 | ⏳ manual (Docker local) |
+| 11 | `capturas/11-sonarqube.png` | SonarCloud Quality Gate OK + A/A/A | C3 | ⏳ manual (SonarCloud) |
+
+> **Para completar las 2 pendientes:**
+> - **10** → GitHub → **Actions** → run más reciente de `main` (7 checks en verde).
+> - **11** → <https://sonarcloud.io/dashboard?id=Hugoatpxndx_OverDrive&branch=main>
+>   → tarjeta Quality Gate «Passed/OK» y ratings A/A/A.
 
 > Para el PDF (pandoc): mover las filas a las secciones indicadas en cada
 > apartado, o insertar directamente al final de cada criterio:

@@ -81,25 +81,31 @@ Desglose SMART (por si preguntan):
 - La advertencia «Storable and Cacheable Content» se mitigó añadiendo
   `Cache-Control: no-store` a todas las respuestas de la API.
 
-**Evidencia SonarQube** (dashboard: `http://localhost:9000/dashboard?id=overdrive`)
+**Evidencia de calidad de código** — SonarCloud, proyecto
+[`Hugoatpxndx_OverDrive`](https://sonarcloud.io/dashboard?id=Hugoatpxndx_OverDrive&branch=main)
+(analizado por el job `sonarqube` del CI en cada push a `main`):
 
 | Métrica | Resultado |
 |---|---|
 | **Quality Gate** | **OK (aprobado)** |
 | Bugs | 0 |
-| Vulnerabilidades | **0** (se corrigen 2 detectadas) |
+| Vulnerabilidades | **0** (se corrigen a lo largo del proyecto) |
 | Code smells | 43 |
 | Duplicación | 1.9 % |
 | Cobertura (global) | 58.6 %* |
 | Reliability / Security / Maintainability | **A / A / A** |
 
-> *SonarQube mide cobertura global del repositorio. La cobertura de la **lógica
+> *SonarCloud mide cobertura global del repositorio. La cobertura de la **lógica
 > de negocio** (controladores y middlewares) es **≥ 80 %**, validada por Jest.
 >
-> **Hallazgos corregidos:** el escáner detectó 2 vulnerabilidades en el
-> `Dockerfile` (`docker:S6471` correr como *root* y `docker:S6470` copiar
-> datos sensibles). Se corrigieron ejecutando como usuario `node` y copiando
-> solo el código necesario → *security rating* pasó de **E (4.0) a A (1.0)**.
+> **Hallazgos corregidos:** el escáner detectó vulnerabilidades y problemas de
+> seguridad a lo largo del proyecto que se corrigieron: `docker:S6471`
+> (contenedor corriendo como *root*) y `docker:S6470` (copiar datos sensibles)
+> en el `Dockerfile`; hash bcrypt del admin hardcodeado en `schema.sql`
+> (`secrets:S8215`), open redirect en `Dashboard.jsx` (`javascript:S6105`),
+> log injection en `spotifyController.js` (`javascript:S5145`), `chmod 777` en
+> CI (`githubactions:S2612`), entre otras → *security rating* pasó de
+> **E (4.0) a A (1.0)** y las vulnerabilidades de **2 → 0**.
 
 **Cómo se reproduce (para la demo)**
 ```bash
@@ -171,7 +177,7 @@ docker run --rm --network host -v "$PWD/docs:/zap/wrk:rw" \
 - [ ] App corriendo: backend `:4000` y frontend `:5173`.
 - [ ] Pipeline en verde (pestaña Actions) para mostrar en vivo.
 - [ ] Reporte **ZAP** generado y abierto.
-- [ ] **SonarQube** cargado en `http://localhost:9000` (admin / `Overdrive2026!`).
+- [ ] **SonarCloud** cargado (Quality Gate OK) en `https://sonarcloud.io/dashboard?id=Hugoatpxndx_OverDrive&branch=main`.
 - [ ] Backend en `:4000` para que ZAP pueda escanear (o usar el reporte ya generado).
 - [ ] Tener a mano el código de: middleware de roles, `jest.config.js` y `ci.yml`.
 - [ ] Dos cuentas listas para el demo (artista y curador).

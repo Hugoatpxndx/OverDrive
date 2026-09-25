@@ -458,6 +458,11 @@ duplicacion, y cobertura de tests.
 ```
 Despues abres `http://localhost:9000` y ves el reporte.
 
+> **Nota (opcional/alumno): la presentación usa SonarCloud** (análisis oficial en
+> el CI, job `sonarqube`): <https://sonarcloud.io/dashboard?id=Hugoatpxndx_OverDrive&branch=main>.
+> El script local solo sirve como referencia si se quiere correr el análisis
+> sin subir a GitHub.
+
 ---
 
 ## PARTE 9: OWASP ZAP (pruebas de seguridad)
